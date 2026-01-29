@@ -1,0 +1,54 @@
+import { motion } from 'motion/react'
+import { BadgeCheck, Banknote, Truck } from 'lucide-react'
+
+const signals = [
+  {
+    icon: BadgeCheck,
+    title: 'Service réservé aux professionnels',
+    description:
+      'Accès exclusif pour restaurants, commerces alimentaires et métiers de bouche',
+  },
+  {
+    icon: Banknote,
+    title: 'Prix clairs – CHF HT',
+    description:
+      'Tarifs professionnels transparents, sans surprise ni frais cachés',
+  },
+  {
+    icon: Truck,
+    title: 'Livraison rapide en Suisse',
+    description:
+      'Expédition sous 24-48h pour toute la Suisse romande et alémanique',
+  },
+]
+
+export function TrustSignals() {
+  return (
+    <section className="bg-charcoal py-16 lg:py-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+          {signals.map((signal, index) => (
+            <motion.div
+              key={signal.title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              className="flex flex-col items-center text-center lg:items-start lg:text-left"
+            >
+              <div className="w-14 h-14 bg-kraft rounded-xl flex items-center justify-center mb-5">
+                <signal.icon className="w-7 h-7 text-white" />
+              </div>
+              <h3 className="font-heading text-xl font-bold text-white mb-2">
+                {signal.title}
+              </h3>
+              <p className="font-sans text-footer-muted leading-relaxed">
+                {signal.description}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}

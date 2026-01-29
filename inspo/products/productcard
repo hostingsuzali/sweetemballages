@@ -1,0 +1,99 @@
+import { Link } from '@tanstack/react-router'
+import { motion } from 'motion/react'
+import { Badge } from '@/components/ui/badge'
+
+export interface Product {
+  id: string
+  name: string
+  category: string
+  dimensions: string
+  packaging: string
+  price: number
+  priceUnit: string
+  customizable: boolean
+  usage: string[]
+  description?: string
+}
+
+interface ProductCardProps {
+  product: Product
+  index?: number
+}
+
+export function ProductCard({ product, index = 0 }: ProductCardProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.05 }}
+    >
+      <Link
+        to="/produits/$productId"
+        params={{ productId: product.id }}
+        className="group block bg-white rounded-xl border border-[#E8E4DE] hover:border-[#C4A77D] hover:shadow-lg transition-all duration-300 overflow-hidden"
+      >
+        {/* Product Image Placeholder */}
+        <div className="aspect-[4/3] bg-gradient-to-br from-[#C4A77D]/10 to-[#E8E4DE] relative overflow-hidden">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-20 h-20 bg-[#C4A77D]/20 rounded-lg transform group-hover:scale-110 transition-transform duration-300" />
+          </div>
+
+          {/* Badges */}
+          <div className="absolute top-3 left-3 flex flex-wrap gap-2">
+            {product.customizable && (
+              <Badge className="bg-[#5B8C5A] text-white font-['Inter'] text-xs hover:bg-[#5B8C5A]">
+                Personnalisable
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-5">
+          {/* Category */}
+          <span className="font-['Inter'] text-xs font-medium text-[#C4A77D] uppercase tracking-wider">
+            {product.category}
+          </span>
+
+          {/* Name */}
+          <h3 className="font-['DM_Sans'] text-lg font-bold text-[#2D2D2D] mt-1 mb-3 group-hover:text-[#C4A77D] transition-colors line-clamp-2">
+            {product.name}
+          </h3>
+
+          {/* Specs Table */}
+          <div className="space-y-2 mb-4">
+            <div className="flex justify-between items-center py-1.5 border-b border-[#E8E4DE]">
+              <span className="font-['Inter'] text-sm text-[#5A5A5A]">
+                Dimensions
+              </span>
+              <span className="font-['Inter'] text-sm font-medium text-[#2D2D2D]">
+                {product.dimensions}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1.5 border-b border-[#E8E4DE]">
+              <span className="font-['Inter'] text-sm text-[#5A5A5A]">
+                Conditionnement
+              </span>
+              <span className="font-['Inter'] text-sm font-medium text-[#2D2D2D]">
+                {product.packaging}
+              </span>
+            </div>
+          </div>
+
+          {/* Price */}
+          <div className="flex items-baseline justify-between">
+            <div>
+              <span className="font-['DM_Sans'] text-2xl font-bold text-[#2D2D2D]">
+                CHF {product.price.toFixed(2)}
+              </span>
+              <span className="font-['Inter'] text-sm text-[#5A5A5A] ml-1">
+                {product.priceUnit}
+              </span>
+            </div>
+            <span className="font-['Inter'] text-xs text-[#5A5A5A]">HT</span>
+          </div>
+        </div>
+      </Link>
+    </motion.div>
+  )
+}

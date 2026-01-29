@@ -1,0 +1,31 @@
+SWEET EMBALLAGES – Design System
+================================
+
+BRAND
+-----
+Company: SWEET EMBALLAGES
+Industry: Food packaging & professional supplies (B2B)
+Market: Switzerland (CHF pricing, French language)
+Tone: Professional, precise, no marketing fluff.
+
+COLORS
+------
+kraft:        #C4A77D   (primary accent, CTAs, highlights)
+white:        #FFFFFF
+background:   #FAFAF8   (page background)
+charcoal:     #2D2D2D   (headings, primary buttons, dark sections)
+border:       #E8E4DE   (borders, dividers)
+muted:        #5A5A5A   (body secondary text)
+green:        #5B8C5A   (eco / food safe accent, badges)
+
+TYPOGRAPHY
+---------
+Headings:     DM Sans, bold, strong hierarchy
+Body / UI:    Inter, readable
+Style:        Modern sans-serif; strong headings, highly readable tables.
+
+LAYOUT
+------
+Grid-based.
+Generous whitespace.
+Clear hierarchy.

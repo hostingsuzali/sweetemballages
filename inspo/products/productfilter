@@ -1,0 +1,114 @@
+import { motion } from 'motion/react'
+import { Filter, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+
+const categories = [
+  { id: 'all', label: 'Tous les produits' },
+  { id: 'pizza', label: 'Boîtes à pizza' },
+  { id: 'sacs', label: 'Sacs alimentaires' },
+  { id: 'gobelets', label: 'Gobelets & vaisselle' },
+  { id: 'papier', label: 'Papier & aluminium' },
+  { id: 'repas', label: 'Boîtes repas & salades' },
+]
+
+const usages = [
+  { id: 'all', label: 'Tous usages' },
+  { id: 'pizza', label: 'Pizzeria' },
+  { id: 'boucherie', label: 'Boucherie' },
+  { id: 'fruits-legumes', label: 'Fruits & légumes' },
+  { id: 'traiteur', label: 'Traiteur' },
+  { id: 'restaurant', label: 'Restaurant' },
+]
+
+interface ProductFiltersProps {
+  selectedCategory: string
+  selectedUsage: string
+  onCategoryChange: (category: string) => void
+  onUsageChange: (usage: string) => void
+}
+
+export function ProductFilters({
+  selectedCategory,
+  selectedUsage,
+  onCategoryChange,
+  onUsageChange,
+}: ProductFiltersProps) {
+  const hasActiveFilters = selectedCategory !== 'all' || selectedUsage !== 'all'
+
+  const clearFilters = () => {
+    onCategoryChange('all')
+    onUsageChange('all')
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-xl border border-[#E8E4DE] p-6 mb-8"
+    >
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <Filter className="w-5 h-5 text-[#C4A77D]" />
+          <h3 className="font-['DM_Sans'] text-lg font-bold text-[#2D2D2D]">
+            Filtres
+          </h3>
+        </div>
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="text-[#5A5A5A] hover:text-[#2D2D2D]"
+          >
+            <X className="w-4 h-4 mr-1" />
+            Effacer
+          </Button>
+        )}
+      </div>
+
+      {/* Category Filter */}
+      <div className="mb-6">
+        <label className="font-['Inter'] text-sm font-medium text-[#5A5A5A] mb-3 block">
+          Catégorie
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => onCategoryChange(cat.id)}
+              className={`font-['Inter'] text-sm px-4 py-2 rounded-lg border transition-all ${
+                selectedCategory === cat.id
+                  ? 'bg-[#2D2D2D] text-white border-[#2D2D2D]'
+                  : 'bg-white text-[#5A5A5A] border-[#E8E4DE] hover:border-[#C4A77D]'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Usage Filter */}
+      <div>
+        <label className="font-['Inter'] text-sm font-medium text-[#5A5A5A] mb-3 block">
+          Usage
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {usages.map((usage) => (
+            <button
+              key={usage.id}
+              onClick={() => onUsageChange(usage.id)}
+              className={`font-['Inter'] text-sm px-4 py-2 rounded-lg border transition-all ${
+                selectedUsage === usage.id
+                  ? 'bg-[#C4A77D] text-white border-[#C4A77D]'
+                  : 'bg-white text-[#5A5A5A] border-[#E8E4DE] hover:border-[#C4A77D]'
+              }`}
+            >
+              {usage.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  )
+}

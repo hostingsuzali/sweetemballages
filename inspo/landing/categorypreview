@@ -1,0 +1,146 @@
+import { Link } from '@tanstack/react-router'
+import { motion } from 'motion/react'
+import {
+  ArrowRight,
+  Pizza,
+  ShoppingBag,
+  Coffee,
+  FileText,
+  Salad,
+} from 'lucide-react'
+
+const categories = [
+  {
+    id: 'pizza',
+    name: 'Boîtes à pizza',
+    description: 'Cartons kraft et blancs, toutes dimensions',
+    icon: Pizza,
+    color: '#C4A77D',
+    products: '45+ produits',
+  },
+  {
+    id: 'sacs',
+    name: 'Sacs alimentaires',
+    description: 'Kraft, bio, sous-vide et papier',
+    icon: ShoppingBag,
+    color: '#5B8C5A',
+    products: '80+ produits',
+  },
+  {
+    id: 'gobelets',
+    name: 'Gobelets & vaisselle',
+    description: 'Jetable, compostable et réutilisable',
+    icon: Coffee,
+    color: '#8B7355',
+    products: '60+ produits',
+  },
+  {
+    id: 'papier',
+    name: 'Papier & aluminium',
+    description: 'Papier alimentaire, alu et film étirable',
+    icon: FileText,
+    color: '#6B7280',
+    products: '35+ produits',
+  },
+  {
+    id: 'repas',
+    name: 'Boîtes repas & salades',
+    description: 'Contenants pour plats chauds et froids',
+    icon: Salad,
+    color: '#059669',
+    products: '70+ produits',
+  },
+]
+
+export function CategoryPreview() {
+  return (
+    <section className="bg-[#FAFAF8] py-20 lg:py-28">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-14"
+        >
+          <span className="font-['Inter'] text-sm font-semibold text-[#C4A77D] uppercase tracking-wider">
+            Notre catalogue
+          </span>
+          <h2 className="font-['DM_Sans'] text-3xl sm:text-4xl lg:text-5xl font-bold text-[#2D2D2D] mt-3 mb-4">
+            Catégories de produits
+          </h2>
+          <p className="font-['Inter'] text-lg text-[#5A5A5A] max-w-2xl mx-auto">
+            Tout l'emballage alimentaire professionnel dont vous avez besoin, au
+            meilleur prix et en stock permanent.
+          </p>
+        </motion.div>
+
+        {/* Categories Grid */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {categories.map((category, index) => (
+            <motion.div
+              key={category.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+            >
+              <a
+                href={`/produits?category=${category.id}`}
+                className="group block bg-white rounded-2xl p-6 border border-[#E8E4DE] hover:border-[#C4A77D] hover:shadow-lg transition-all duration-300"
+              >
+                <div
+                  className="w-14 h-14 rounded-xl flex items-center justify-center mb-5 transition-transform group-hover:scale-110"
+                  style={{ backgroundColor: `${category.color}15` }}
+                >
+                  <category.icon
+                    className="w-7 h-7"
+                    style={{ color: category.color }}
+                  />
+                </div>
+
+                <h3 className="font-['DM_Sans'] text-xl font-bold text-[#2D2D2D] mb-2 group-hover:text-[#C4A77D] transition-colors">
+                  {category.name}
+                </h3>
+
+                <p className="font-['Inter'] text-[#5A5A5A] mb-4 leading-relaxed">
+                  {category.description}
+                </p>
+
+                <div className="flex items-center justify-between">
+                  <span className="font-['Inter'] text-sm font-medium text-[#C4A77D]">
+                    {category.products}
+                  </span>
+                  <ArrowRight className="w-5 h-5 text-[#C4A77D] transform group-hover:translate-x-1 transition-transform" />
+                </div>
+              </a>
+            </motion.div>
+          ))}
+
+          {/* View All Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+          >
+            <Link
+              to="/produits"
+              className="group flex flex-col items-center justify-center h-full min-h-[240px] bg-[#2D2D2D] rounded-2xl p-6 hover:bg-[#3D3D3D] transition-colors"
+            >
+              <div className="w-14 h-14 bg-[#C4A77D] rounded-xl flex items-center justify-center mb-5">
+                <ArrowRight className="w-7 h-7 text-white" />
+              </div>
+              <h3 className="font-['DM_Sans'] text-xl font-bold text-white mb-2">
+                Voir tout le catalogue
+              </h3>
+              <p className="font-['Inter'] text-[#A0A0A0] text-center">
+                Parcourez nos 500+ références
+              </p>
+            </Link>
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  )
+}
