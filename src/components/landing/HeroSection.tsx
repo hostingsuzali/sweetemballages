@@ -70,17 +70,6 @@ export function HeroSection() {
                   <p className="font-sans text-sm text-muted">Livraison</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <img 
-                  src="/fourgonandhanger.png" 
-                  alt="Fourgon et hanger - Transport professionnel"
-                  className="w-16 h-10 object-contain rounded-lg"
-                />
-                <div>
-                  <p className="font-heading font-bold text-charcoal">Transport</p>
-                  <p className="font-sans text-sm text-muted">Professionnel</p>
-                </div>
-              </div>
             </div>
           </motion.div>
           <motion.div
@@ -89,41 +78,25 @@ export function HeroSection() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="relative lg:col-span-5 lg:max-w-md"
           >
-            <div className="relative aspect-square lg:aspect-[4/5] max-h-[320px] lg:max-h-none rounded-2xl overflow-hidden bg-gradient-to-br from-kraft/20 to-border-neutral">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="relative w-3/4 h-3/4">
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.4, duration: 0.5 }}
-                    className="absolute bottom-0 left-0 w-48 h-48 bg-kraft rounded-lg shadow-2xl transform -rotate-6"
-                  />
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.5, duration: 0.5 }}
-                    className="absolute bottom-8 left-16 w-44 h-44 bg-kraft/90 rounded-lg shadow-xl transform rotate-3"
-                  />
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.6, duration: 0.5 }}
-                    className="absolute bottom-16 left-32 w-40 h-40 bg-kraft/70 rounded-lg shadow-lg transform -rotate-2"
-                  />
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.8, type: 'spring', stiffness: 200 }}
-                    className="absolute top-4 right-4 w-20 h-20 bg-green-accent rounded-full flex items-center justify-center shadow-lg"
-                  >
-                    <span className="font-heading text-white text-xs font-bold text-center leading-tight">
-                      ECO
-                      <br />
-                      FRIENDLY
-                    </span>
-                  </motion.div>
-                </div>
-              </div>
+            <div className="relative aspect-square lg:aspect-[4/5] max-h-[320px] lg:max-h-none rounded-2xl overflow-hidden bg-white/5 border border-white/10 shadow-2xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-kraft/10 to-transparent z-10" />
+              <img
+                src="/fourgonandhanger.png"
+                alt="Flotte Sweet Emballages"
+                className="w-full h-full object-cover object-center relative z-0"
+              />
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.8, type: 'spring', stiffness: 200 }}
+                className="absolute top-4 right-4 z-20 w-20 h-20 bg-green-accent rounded-full flex items-center justify-center shadow-lg"
+              >
+                <span className="font-heading text-white text-xs font-bold text-center leading-tight">
+                  ECO
+                  <br />
+                  FRIENDLY
+                </span>
+              </motion.div>
             </div>
             <motion.div
               initial={{ opacity: 0, x: -20 }}

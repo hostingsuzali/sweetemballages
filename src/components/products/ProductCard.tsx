@@ -30,19 +30,17 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
         className="group block bg-white rounded-xl border border-border-neutral hover:border-kraft hover:shadow-lg transition-all duration-300 overflow-hidden"
       >
         <div className="aspect-[4/3] bg-gradient-to-br from-kraft/10 to-border-neutral relative overflow-hidden">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <img 
-              src={`/productimages/${product.id}.png`}
+          {product.image ? (
+            <img
+              src={product.image}
               alt={product.name}
-              className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                target.nextElementSibling?.classList.remove('hidden');
-              }}
+              className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-110"
             />
-            <div className="w-20 h-20 bg-kraft/20 rounded-lg transform group-hover:scale-110 transition-transform duration-300 hidden" />
-          </div>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-20 h-20 bg-kraft/20 rounded-lg transform duration-300 group-hover:scale-110" />
+            </div>
+          )}
           <div className="absolute top-3 left-3 flex flex-wrap gap-2">
             {product.customizable && (
               <Badge variant="green" className="font-sans text-xs">

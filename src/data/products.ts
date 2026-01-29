@@ -10,6 +10,7 @@ export interface Product {
   usage: string[]
   description?: string
   minOrderQty?: number
+  image?: string
 }
 
 /** Menu principal du catalogue (5 grandes familles) */
@@ -44,6 +45,7 @@ export const MOCK_PRODUCTS: Product[] = [
     customizable: true,
     usage: ['pizza', 'restaurant'],
     minOrderQty: 100,
+    image: '/productimages/pizzabox.png',
   },
   {
     id: 'pizza-classique-31',
@@ -56,6 +58,7 @@ export const MOCK_PRODUCTS: Product[] = [
     customizable: true,
     usage: ['pizza', 'restaurant'],
     minOrderQty: 100,
+    image: '/productimages/pizzabox.png',
   },
   {
     id: 'pizza-classique-40',
@@ -68,6 +71,7 @@ export const MOCK_PRODUCTS: Product[] = [
     customizable: true,
     usage: ['pizza', 'restaurant'],
     minOrderQty: 100,
+    image: '/productimages/pizzabox.png',
   },
   {
     id: 'pizza-distributeur-29',
@@ -80,6 +84,7 @@ export const MOCK_PRODUCTS: Product[] = [
     customizable: true,
     usage: ['pizza', 'restaurant'],
     minOrderQty: 100,
+    image: '/productimages/pizzabox.png',
   },
   {
     id: 'boite-sandwich-carton',
@@ -92,6 +97,7 @@ export const MOCK_PRODUCTS: Product[] = [
     customizable: true,
     usage: ['restaurant', 'traiteur'],
     minOrderQty: 50,
+    image: '/productimages/sandwishbox.png',
   },
   // ——— Barquettes & Plats à Emporter ———
   {
@@ -105,6 +111,7 @@ export const MOCK_PRODUCTS: Product[] = [
     customizable: false,
     usage: ['restaurant', 'traiteur', 'fruits-legumes'],
     minOrderQty: 50,
+    image: '/productimages/saladebox.png',
   },
   {
     id: 'salade-1500ml',
@@ -117,6 +124,7 @@ export const MOCK_PRODUCTS: Product[] = [
     customizable: false,
     usage: ['restaurant', 'traiteur', 'fruits-legumes'],
     minOrderQty: 50,
+    image: '/productimages/saladebox.png',
   },
   {
     id: 'pot-couvercle-500cc',
@@ -129,6 +137,7 @@ export const MOCK_PRODUCTS: Product[] = [
     customizable: false,
     usage: ['restaurant', 'traiteur'],
     minOrderQty: 50,
+    image: '/productimages/pot.png',
   },
   {
     id: 'pot-couvercle-750cc',
@@ -141,6 +150,7 @@ export const MOCK_PRODUCTS: Product[] = [
     customizable: false,
     usage: ['restaurant', 'traiteur'],
     minOrderQty: 50,
+    image: '/productimages/pot.png',
   },
   {
     id: 'pot-couvercle-1000cc',
@@ -153,6 +163,7 @@ export const MOCK_PRODUCTS: Product[] = [
     customizable: false,
     usage: ['restaurant', 'traiteur'],
     minOrderQty: 50,
+    image: '/productimages/pot.png',
   },
   {
     id: 'assiette-5-compartiments',
@@ -165,6 +176,7 @@ export const MOCK_PRODUCTS: Product[] = [
     customizable: false,
     usage: ['restaurant', 'traiteur'],
     minOrderQty: 50,
+    image: '/productimages/assiette5comp.png',
   },
   // ——— Sacherie & Transport ———
   {

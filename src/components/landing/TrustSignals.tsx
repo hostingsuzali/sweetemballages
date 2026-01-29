@@ -48,22 +48,6 @@ export function TrustSignals() {
             </motion.div>
           ))}
         </div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-12 text-center"
-        >
-          <img 
-            src="/fourgonandhanger.png" 
-            alt="Transport professionnel avec fourgon et hanger"
-            className="mx-auto h-20 object-contain opacity-80"
-          />
-          <p className="font-sans text-sm text-footer-muted mt-3">
-            Transport professionnel garanti avec notre flotte de fourgons équipés
-          </p>
-        </motion.div>
       </div>
     </section>
   )
