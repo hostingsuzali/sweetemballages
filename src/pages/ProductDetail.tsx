@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 
 const categoryLabels: Record<string, string> = {
-  pizza: 'Boîtes à pizza',
-  sacs: 'Sacs alimentaires',
-  gobelets: 'Gobelets & vaisselle',
-  papier: 'Papier & aluminium',
-  repas: 'Boîtes repas & salades',
+  'pizza-snacking': 'Emballages Pizza & Snacking',
+  'barquettes-plats': 'Barquettes & Plats à Emporter',
+  'sacherie-transport': 'Sacherie & Transport',
+  'boucherie-conservation': 'Boucherie & Conservation',
+  'boissons-consommables': 'Boissons & Consommables',
 }
 
 export function ProductDetail() {

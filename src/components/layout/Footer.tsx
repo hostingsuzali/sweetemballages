@@ -1,13 +1,13 @@
 import { Link } from '@tanstack/react-router'
-import { Package, Phone, Mail, MapPin } from 'lucide-react'
+import { Phone, Mail, MapPin } from 'lucide-react'
 
 const footerLinks = {
   produits: [
-    { label: 'Boîtes à pizza', to: '/produits?category=pizza' },
-    { label: 'Sacs alimentaires', to: '/produits?category=sacs' },
-    { label: 'Gobelets & vaisselle', to: '/produits?category=gobelets' },
-    { label: 'Papier & aluminium', to: '/produits?category=papier' },
-    { label: 'Boîtes repas', to: '/produits?category=repas' },
+    { label: 'Pizza & Snacking', to: '/produits?category=pizza-snacking' },
+    { label: 'Barquettes & Plats', to: '/produits?category=barquettes-plats' },
+    { label: 'Sacherie & Transport', to: '/produits?category=sacherie-transport' },
+    { label: 'Boucherie & Conservation', to: '/produits?category=boucherie-conservation' },
+    { label: 'Boissons & Consommables', to: '/produits?category=boissons-consommables' },
   ],
   services: [
     { label: 'Personnalisation logo', to: '/personnalisation' },
@@ -27,17 +27,11 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 lg:gap-12">
           <div className="col-span-2 lg:col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-6">
-              <div className="w-10 h-10 bg-kraft rounded-lg flex items-center justify-center">
-                <Package className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex flex-col">
-                <span className="font-heading font-bold text-lg text-white tracking-tight leading-none">
-                  SWEET
-                </span>
-                <span className="font-heading font-medium text-xs text-kraft tracking-widest leading-none">
-                  EMBALLAGES
-                </span>
-              </div>
+              <img
+                src="/logobrownwhite.png"
+                alt="SWEET EMBALLAGES"
+                className="h-14 w-auto object-contain"
+              />
             </Link>
             <p className="font-sans text-footer-muted leading-relaxed mb-6 max-w-sm">
               Votre fournisseur d'emballages alimentaires professionnels en
@@ -45,11 +39,11 @@ export function Footer() {
             </p>
             <div className="space-y-3">
               <a
-                href="tel:+41000000000"
+                href="tel:+41765041069"
                 className="flex items-center gap-3 text-footer-muted hover:text-white transition-colors"
               >
                 <Phone className="w-4 h-4 text-kraft" />
-                <span className="font-sans text-sm">+41 00 000 00 00</span>
+                <span className="font-sans text-sm">076 504 10 69</span>
               </a>
               <a
                 href="mailto:contact@sweetemballages.ch"
@@ -63,8 +57,8 @@ export function Footer() {
               <div className="flex items-start gap-3 text-footer-muted">
                 <MapPin className="w-4 h-4 text-kraft mt-0.5 flex-shrink-0" />
                 <span className="font-sans text-sm">
-                  Rue de l'Industrie 1<br />
-                  1000 Lausanne, Suisse
+                  Route de la Venoge 2<br />
+                  1302 Vufflens-la-Ville
                 </span>
               </div>
             </div>

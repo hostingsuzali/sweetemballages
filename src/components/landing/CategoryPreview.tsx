@@ -3,52 +3,52 @@ import { motion } from 'motion/react'
 import {
   ArrowRight,
   Pizza,
-  ShoppingBag,
-  Coffee,
-  FileText,
   Salad,
+  ShoppingBag,
+  Beef,
+  Coffee,
 } from 'lucide-react'
 
 const categories = [
   {
-    id: 'pizza',
-    name: 'Boîtes à pizza',
-    description: 'Cartons kraft et blancs, toutes dimensions',
+    id: 'pizza-snacking',
+    name: 'Emballages Pizza & Snacking',
+    description: 'Boîtes pizza classiques, distributeur, boîtes sandwich',
     icon: Pizza,
     color: 'kraft',
-    products: '45+ produits',
+    products: '5 références',
   },
   {
-    id: 'sacs',
-    name: 'Sacs alimentaires',
-    description: 'Kraft, bio, sous-vide et papier',
-    icon: ShoppingBag,
-    color: 'green-accent',
-    products: '80+ produits',
-  },
-  {
-    id: 'gobelets',
-    name: 'Gobelets & vaisselle',
-    description: 'Jetable, compostable et réutilisable',
-    icon: Coffee,
-    color: 'charcoal',
-    products: '60+ produits',
-  },
-  {
-    id: 'papier',
-    name: 'Papier & aluminium',
-    description: 'Papier alimentaire, alu et film étirable',
-    icon: FileText,
-    color: 'muted',
-    products: '35+ produits',
-  },
-  {
-    id: 'repas',
-    name: 'Boîtes repas & salades',
-    description: 'Contenants pour plats chauds et froids',
+    id: 'barquettes-plats',
+    name: 'Barquettes & Plats à Emporter',
+    description: 'Salades, pots avec couvercle, assiettes compartimentées',
     icon: Salad,
     color: 'green-accent',
-    products: '70+ produits',
+    products: '6 références',
+  },
+  {
+    id: 'sacherie-transport',
+    name: 'Sacherie & Transport',
+    description: 'Sacs cabas, kraft, bio, eco, primeur',
+    icon: ShoppingBag,
+    color: 'charcoal',
+    products: '8 références',
+  },
+  {
+    id: 'boucherie-conservation',
+    name: 'Boucherie & Conservation',
+    description: 'Sous-vide, papier boucherie, rouleau aluminium',
+    icon: Beef,
+    color: 'muted',
+    products: '4 références',
+  },
+  {
+    id: 'boissons-consommables',
+    name: 'Boissons & Consommables',
+    description: 'Gobelets, serviettes, papier caisse',
+    icon: Coffee,
+    color: 'green-accent',
+    products: '5 références',
   },
 ]
 
@@ -130,7 +130,7 @@ export function CategoryPreview() {
                 Voir tout le catalogue
               </h3>
               <p className="font-sans text-footer-muted text-center">
-                Parcourez nos 500+ références
+                Parcourez toutes les références
               </p>
             </Link>
           </motion.div>

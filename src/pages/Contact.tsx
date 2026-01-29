@@ -22,11 +22,11 @@ export function Contact() {
             </h2>
             <div className="space-y-6 font-sans text-muted">
               <a
-                href="tel:+41000000000"
+                href="tel:+41765041069"
                 className="flex items-center gap-3 text-charcoal hover:text-kraft transition-colors"
               >
                 <Phone className="w-5 h-5 text-kraft flex-shrink-0" />
-                <span>+41 00 000 00 00</span>
+                <span>076 504 10 69</span>
               </a>
               <a
                 href="mailto:contact@sweetemballages.ch"
@@ -38,8 +38,8 @@ export function Contact() {
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-kraft mt-0.5 flex-shrink-0" />
                 <span>
-                  Rue de l'Industrie 1<br />
-                  1000 Lausanne, Suisse
+                  Route de la Venoge 2<br />
+                  1302 Vufflens-la-Ville
                 </span>
               </div>
             </div>

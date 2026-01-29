@@ -31,7 +31,7 @@ export function Branding() {
             logo et leurs coordonnées sur chaque livraison. Quantités adaptées
             aux professionnels, avec possibilité de tarifs dégressifs.
           </p>
-          <Link to="/produits?category=pizza">
+          <Link to="/produits?category=pizza-snacking">
             <Button variant="primary">Voir les boîtes pizza</Button>
           </Link>
         </div>

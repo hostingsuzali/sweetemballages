@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Menu, X, Package } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 
@@ -18,17 +18,11 @@ export function Navbar() {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 bg-kraft rounded-lg flex items-center justify-center group-hover:bg-kraft/90 transition-colors">
-              <Package className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-heading font-bold text-lg text-charcoal tracking-tight leading-none">
-                SWEET
-              </span>
-              <span className="font-heading font-medium text-xs text-kraft tracking-widest leading-none">
-                EMBALLAGES
-              </span>
-            </div>
+            <img
+              src="/logobrownblack.png"
+              alt="SWEET EMBALLAGES"
+              className="h-14 w-auto object-contain"
+            />
           </Link>
 
           <div className="hidden lg:flex items-center gap-8">

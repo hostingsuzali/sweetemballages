@@ -4,7 +4,7 @@ import { ArrowRight, Box, Truck, BadgeCheck } from 'lucide-react'
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-[80vh] bg-background pt-12 lg:pt-16 overflow-hidden">
+    <section className="relative min-h-[64vh] bg-background pt-6 lg:pt-8 overflow-hidden">
       <div
         className="absolute inset-0 opacity-[0.03]"
         style={{
@@ -12,13 +12,13 @@ export function HeroSection() {
         }}
       />
       <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-kraft/5 to-transparent" />
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
+        <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="space-y-8"
+            className="space-y-8 lg:col-span-7"
           >
             <div className="inline-flex items-center gap-2 bg-green-accent/10 text-green-accent px-4 py-2 rounded-full">
               <BadgeCheck className="w-4 h-4" />
@@ -70,15 +70,26 @@ export function HeroSection() {
                   <p className="font-sans text-sm text-muted">Livraison</p>
                 </div>
               </div>
+              <div className="flex items-center gap-3">
+                <img 
+                  src="/fourgonandhanger.png" 
+                  alt="Fourgon et hanger - Transport professionnel"
+                  className="w-16 h-10 object-contain rounded-lg"
+                />
+                <div>
+                  <p className="font-heading font-bold text-charcoal">Transport</p>
+                  <p className="font-sans text-sm text-muted">Professionnel</p>
+                </div>
+              </div>
             </div>
           </motion.div>
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="relative"
+            className="relative lg:col-span-5 lg:max-w-md"
           >
-            <div className="relative aspect-square lg:aspect-[4/5] rounded-2xl overflow-hidden bg-gradient-to-br from-kraft/20 to-border-neutral">
+            <div className="relative aspect-square lg:aspect-[4/5] max-h-[320px] lg:max-h-none rounded-2xl overflow-hidden bg-gradient-to-br from-kraft/20 to-border-neutral">
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="relative w-3/4 h-3/4">
                   <motion.div

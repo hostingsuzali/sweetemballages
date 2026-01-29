@@ -85,7 +85,7 @@ export function ContactForm() {
             type="tel"
             value={formData.phone}
             onChange={handleChange}
-            placeholder="+41 00 000 00 00"
+            placeholder="076 504 10 69"
           />
         </div>
         <div className="space-y-2">

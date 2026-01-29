@@ -9,11 +9,11 @@ interface ProductCardProps {
 }
 
 const categoryLabels: Record<string, string> = {
-  pizza: 'Boîtes à pizza',
-  sacs: 'Sacs alimentaires',
-  gobelets: 'Gobelets & vaisselle',
-  papier: 'Papier & aluminium',
-  repas: 'Boîtes repas & salades',
+  'pizza-snacking': 'Emballages Pizza & Snacking',
+  'barquettes-plats': 'Barquettes & Plats à Emporter',
+  'sacherie-transport': 'Sacherie & Transport',
+  'boucherie-conservation': 'Boucherie & Conservation',
+  'boissons-consommables': 'Boissons & Consommables',
 }
 
 export function ProductCard({ product, index = 0 }: ProductCardProps) {
@@ -31,7 +31,17 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
       >
         <div className="aspect-[4/3] bg-gradient-to-br from-kraft/10 to-border-neutral relative overflow-hidden">
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-20 h-20 bg-kraft/20 rounded-lg transform group-hover:scale-110 transition-transform duration-300" />
+            <img 
+              src={`/productimages/${product.id}.png`}
+              alt={product.name}
+              className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                target.nextElementSibling?.classList.remove('hidden');
+              }}
+            />
+            <div className="w-20 h-20 bg-kraft/20 rounded-lg transform group-hover:scale-110 transition-transform duration-300 hidden" />
           </div>
           <div className="absolute top-3 left-3 flex flex-wrap gap-2">
             {product.customizable && (
