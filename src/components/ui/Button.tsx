@@ -1,36 +1,34 @@
-import * as React from 'react'
+import { ButtonHTMLAttributes, forwardRef } from 'react'
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost'
-  size?: 'sm' | 'default'
-  asChild?: boolean
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+    variant?: 'primary' | 'secondary' | 'outline' | 'ghost'
+    size?: 'sm' | 'md' | 'lg'
 }
 
-const variantStyles = {
-  primary:
-    'bg-charcoal text-white hover:bg-charcoal/90 focus-visible:ring-kraft',
-  secondary:
-    'bg-transparent text-charcoal border-2 border-charcoal hover:bg-charcoal hover:text-white focus-visible:ring-kraft',
-  ghost:
-    'bg-transparent text-charcoal hover:text-kraft focus-visible:ring-kraft',
-}
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+    ({ className = '', variant = 'primary', size = 'md', ...props }, ref) => {
+        const baseStyles = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 font-sans"
 
-const sizeStyles = {
-  sm: 'px-4 py-2 text-sm rounded-lg',
-  default: 'px-6 py-3 text-base rounded-lg',
-}
+        const variants = {
+            primary: "bg-charcoal hover:bg-[#3D3D3D] text-white focus-visible:ring-charcoal",
+            secondary: "bg-kraft hover:bg-[#b3966c] text-white focus-visible:ring-kraft",
+            outline: "border-2 border-charcoal bg-transparent text-charcoal hover:bg-charcoal hover:text-white focus-visible:ring-charcoal",
+            ghost: "hover:bg-background hover:text-charcoal text-muted focus-visible:ring-charcoal",
+        }
 
-export function Button({
-  className = '',
-  variant = 'primary',
-  size = 'default',
-  ...props
-}: ButtonProps) {
-  return (
-    <button
-      className={`inline-flex items-center justify-center font-sans font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
-      {...props}
-    />
-  )
-}
+        const sizes = {
+            sm: "h-9 px-3",
+            md: "h-10 px-4 py-2",
+            lg: "h-14 px-8 py-4 text-base",
+        }
+
+        return (
+            <button
+                ref={ref}
+                className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
+                {...props}
+            />
+        )
+    }
+)
+Button.displayName = 'Button'

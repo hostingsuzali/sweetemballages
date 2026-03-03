@@ -1,90 +1,123 @@
-import { Link } from '@tanstack/react-router'
-import { motion } from 'motion/react'
+"use client"
+import Link from 'next/link'
 import { Badge } from '@/components/ui/Badge'
-import type { Product } from '@/data/products'
+import { motion } from 'motion/react'
+import { getProductImageUrl } from '@/lib/storage'
+import Image from 'next/image'
+import { ArrowUpRight, Ruler, Package } from 'lucide-react'
 
-interface ProductCardProps {
-  product: Product
-  index?: number
+export interface Product {
+    id: string
+    name: string
+    category: string
+    categoryId?: string
+    dimensions: string
+    packaging: string
+    price: number
+    priceUnit: string
+    customizable: boolean
+    usage: string[]
+    description?: string
+    image_url?: string
 }
 
-const categoryLabels: Record<string, string> = {
-  'pizza-snacking': 'Emballages Pizza & Snacking',
-  'barquettes-plats': 'Barquettes & Plats à Emporter',
-  'sacherie-transport': 'Sacherie & Transport',
-  'boucherie-conservation': 'Boucherie & Conservation',
-  'boissons-consommables': 'Boissons & Consommables',
+interface ProductCardProps {
+    product: Product
+    index?: number
 }
 
 export function ProductCard({ product, index = 0 }: ProductCardProps) {
-  const categoryLabel = categoryLabels[product.category] ?? product.category
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.05 }}
-    >
-      <Link
-        to="/produits/$productId"
-        params={{ productId: product.id }}
-        className="group block bg-white rounded-xl border border-border-neutral hover:border-kraft hover:shadow-lg transition-all duration-300 overflow-hidden"
-      >
-        <div className="aspect-[4/3] bg-gradient-to-br from-kraft/10 to-border-neutral relative overflow-hidden">
-          {product.image ? (
-            <img
-              src={product.image}
-              alt={product.name}
-              className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-110"
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-20 h-20 bg-kraft/20 rounded-lg transform duration-300 group-hover:scale-110" />
-            </div>
-          )}
-          <div className="absolute top-3 left-3 flex flex-wrap gap-2">
-            {product.customizable && (
-              <Badge variant="green" className="font-sans text-xs">
-                Personnalisable
-              </Badge>
-            )}
-          </div>
-        </div>
-        <div className="p-5">
-          <span className="font-sans text-xs font-medium text-kraft uppercase tracking-wider">
-            {categoryLabel}
-          </span>
-          <h3 className="font-heading text-lg font-bold text-charcoal mt-1 mb-3 group-hover:text-kraft transition-colors line-clamp-2">
-            {product.name}
-          </h3>
-          <div className="space-y-2 mb-4">
-            <div className="flex justify-between items-center py-1.5 border-b border-border-neutral">
-              <span className="font-sans text-sm text-muted">Dimensions</span>
-              <span className="font-sans text-sm font-medium text-charcoal">
-                {product.dimensions}
-              </span>
-            </div>
-            <div className="flex justify-between items-center py-1.5 border-b border-border-neutral">
-              <span className="font-sans text-sm text-muted">
-                Conditionnement
-              </span>
-              <span className="font-sans text-sm font-medium text-charcoal">
-                {product.packaging}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <div>
-              <span className="font-heading text-2xl font-bold text-charcoal">
-                CHF {product.price.toFixed(2)}
-              </span>
-              <span className="font-sans text-sm text-muted ml-1">
-                {product.priceUnit}
-              </span>
-            </div>
-            <span className="font-sans text-xs text-muted">HT</span>
-          </div>
-        </div>
-      </Link>
-    </motion.div>
-  )
+    return (
+        <motion.div
+            initial={{ y: 30, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: index * 0.08, duration: 0.5, ease: 'easeOut' }}
+            className="h-full"
+        >
+            <Link
+                href={`/produits/${product.id}`}
+                className="group flex flex-col h-full bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-400 ease-out"
+                style={{ transition: 'box-shadow 0.35s ease, transform 0.35s ease, border-color 0.35s ease' }}
+            >
+                {/* ── Image ── */}
+                <div className="relative aspect-[4/3] overflow-hidden bg-gray-50 flex-shrink-0">
+                    <Image
+                        src={getProductImageUrl(product.image_url || null)}
+                        alt={product.name}
+                        fill
+                        unoptimized={true}
+                        className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+
+                    {/* Dark overlay on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
+
+                    {/* Arrow icon reveal */}
+                    <div className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+                        <ArrowUpRight className="w-4 h-4 text-[#8B6914]" />
+                    </div>
+
+                    {/* Badges */}
+                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+                        {product.customizable && (
+                            <Badge className="bg-[#4a724a] text-white text-[10px] px-2 py-0.5 shadow-sm">
+                                Personnalisable
+                            </Badge>
+                        )}
+                    </div>
+
+                    {/* Category pill – slides up from bottom on hover */}
+                    <div className="absolute bottom-3 left-3 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-350">
+                        <span className="inline-block bg-white/90 backdrop-blur-sm text-[#8B6914] text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full shadow-sm">
+                            {product.category}
+                        </span>
+                    </div>
+                </div>
+
+                {/* ── Content ── */}
+                <div className="flex flex-col flex-1 p-5">
+                    {/* Category (visible without hover) */}
+                    <span className="font-sans text-[11px] font-semibold text-[#8B6914] uppercase tracking-widest mb-1 group-hover:opacity-0 transition-opacity duration-200">
+                        {product.category}
+                    </span>
+
+                    {/* Name */}
+                    <h3 className="font-heading text-base font-bold text-gray-800 mb-3 leading-snug line-clamp-2 group-hover:text-[#8B6914] transition-colors duration-300">
+                        {product.name}
+                    </h3>
+
+                    {/* Specs */}
+                    <div className="flex flex-col gap-2 mb-4 flex-1">
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <Ruler className="w-3.5 h-3.5 text-[#8B6914] flex-shrink-0" />
+                            <span className="truncate">{product.dimensions}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <Package className="w-3.5 h-3.5 text-[#8B6914] flex-shrink-0" />
+                            <span className="truncate">{product.packaging}</span>
+                        </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-gray-100 pt-4">
+                        {/* Price row */}
+                        <div className="flex items-end justify-between">
+                            <div className="flex items-baseline gap-1">
+                                <span className="font-heading text-xl font-bold text-gray-900 group-hover:text-[#8B6914] transition-colors duration-300">
+                                    CHF {product.price.toFixed(2)}
+                                </span>
+                                <span className="text-xs text-gray-400">{product.priceUnit}</span>
+                            </div>
+                            <span className="text-[10px] font-medium text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full">HT</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bottom accent bar */}
+                <div className="h-0.5 w-0 group-hover:w-full bg-gradient-to-r from-[#8B6914] to-[#c49a2a] transition-all duration-500 ease-out" />
+            </Link>
+        </motion.div>
+    )
 }

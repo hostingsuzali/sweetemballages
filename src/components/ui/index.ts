@@ -1,5 +1,0 @@
-export { Button } from './Button'
-export { Badge } from './Badge'
-export { Label } from './Label'
-export { Input } from './Input'
-export { Textarea } from './Textarea'

@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Category {
+  id       String    @id
+  label    String
+  products Product[]
+
+  @@map("categories")
+}
+
+model Usage {
+  id       String    @id
+  label    String
+  products Product[] @relation("ProductUsages")
+
+  @@map("usages")
+}
+
+model Product {
+  id           String   @id
+  name         String
+  
+  categoryId   String   @map("category_id")
+  category     Category @relation(fields: [categoryId], references: [id])
+  
+  dimensions   String
+  packaging    String
+  price        Float
+  priceUnit    String   @map("price_unit")
+  customizable Boolean  @default(false)
+  minOrderQty  Int?     @map("min_order_qty")
+  description  String?
+  imageUrl     String?  @map("image_url")
+  
+  usages       Usage[]  @relation("ProductUsages")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("produits")
+}
+
+model ContactMessage {
+  id          String   @id @default(cuid())
+  companyName String   @map("company_name")
+  email       String
+  phone       String?
+  message     String
+  isRead      Boolean  @default(false) @map("is_read")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("contact_messages")
+}
+
+model DemandeDevis {
+  id          String   @id @default(cuid())
+  companyName String   @map("company_name")
+  email       String
+  phone       String?
+  message     String
+  isRead      Boolean  @default(false) @map("is_read")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("demandes_devis")
+}
+
