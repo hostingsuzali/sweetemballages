@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Plus, Trash2, Loader2, Workflow } from 'lucide-react'
 
@@ -15,8 +15,7 @@ export default function UsagesAdminPage() {
     const [newLabel, setNewLabel] = useState('')
     const [saving, setSaving] = useState(false)
 
-    const fetchUsages = async () => {
-        setLoading(true)
+    const loadUsages = useCallback(async () => {
         const { data, error } = await supabase
             .from('usages')
             .select('*')
@@ -26,11 +25,14 @@ export default function UsagesAdminPage() {
             setUsages(data)
         }
         setLoading(false)
-    }
+    }, [])
 
     useEffect(() => {
-        fetchUsages()
-    }, [])
+        const init = async () => {
+            await loadUsages()
+        }
+        init()
+    }, [loadUsages])
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -46,7 +48,7 @@ export default function UsagesAdminPage() {
         } else {
             setNewId('')
             setNewLabel('')
-            fetchUsages()
+            loadUsages()
         }
         setSaving(false)
     }
@@ -62,7 +64,7 @@ export default function UsagesAdminPage() {
         if (error) {
             alert(`Erreur: ${error.message} (Assurez-vous qu'aucun produit n'est lié à cet usage)`)
         } else {
-            fetchUsages()
+            loadUsages()
         }
     }
 
