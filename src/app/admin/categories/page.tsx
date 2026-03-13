@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Plus, Trash2, Loader2, Tags } from 'lucide-react'
 
@@ -15,8 +15,7 @@ export default function CategoriesAdminPage() {
     const [newLabel, setNewLabel] = useState('')
     const [saving, setSaving] = useState(false)
 
-    const fetchCategories = async () => {
-        setLoading(true)
+    const loadCategories = useCallback(async () => {
         const { data, error } = await supabase
             .from('categories')
             .select('*')
@@ -26,11 +25,14 @@ export default function CategoriesAdminPage() {
             setCategories(data)
         }
         setLoading(false)
-    }
+    }, [])
 
     useEffect(() => {
-        fetchCategories()
-    }, [])
+        const init = async () => {
+            await loadCategories()
+        }
+        init()
+    }, [loadCategories])
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -46,7 +48,7 @@ export default function CategoriesAdminPage() {
         } else {
             setNewId('')
             setNewLabel('')
-            fetchCategories()
+            loadCategories()
         }
         setSaving(false)
     }
@@ -62,7 +64,7 @@ export default function CategoriesAdminPage() {
         if (error) {
             alert(`Erreur: ${error.message} (Assurez-vous qu'aucun produit n'utilise cette catégorie)`)
         } else {
-            fetchCategories()
+            loadCategories()
         }
     }
 
