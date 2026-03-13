@@ -71,3 +71,16 @@ model DemandeDevis {
   @@map("demandes_devis")
 }
 
+model ContactInfo {
+  id                String  @id @default("default")
+  phone             String? @map("phone")
+  phoneHours        String? @map("phone_hours")
+  email             String? @map("email")
+  emailResponseTime String? @map("email_response_time")
+  addressLine1      String? @map("address_line1")
+  addressLine2      String? @map("address_line2")
+  addressCountry    String? @map("address_country")
+
+  @@map("contact_info")
+}
+

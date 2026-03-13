@@ -28,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${dmSans.variable} ${inter.variable}`}>
-      <body className="antialiased bg-background text-muted font-sans">
+      <body className="antialiased">
         {children}
       </body>
     </html>
