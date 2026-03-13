@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Phone, Mail, MapPin } from 'lucide-react'
 import Image from 'next/image'
+import { getContactInfo } from '@/lib/contact-info'
 
 const footerLinks = {
     produits: [
@@ -21,7 +22,10 @@ const footerLinks = {
     ],
 }
 
-export function Footer() {
+export async function Footer() {
+    const contact = await getContactInfo()
+    const telHref = contact.phone ? `tel:${contact.phone.replace(/\s/g, '')}` : null
+
     return (
         <footer className="bg-charcoal text-white">
             {/* Main Footer */}
@@ -46,29 +50,38 @@ export function Footer() {
 
                         {/* Contact Info */}
                         <div className="space-y-3">
-                            <a
-                                href="tel:+41000000000"
-                                className="flex items-center gap-3 text-[#A0A0A0] hover:text-white transition-colors"
-                            >
-                                <Phone className="w-4 h-4 text-kraft" />
-                                <span className="font-sans text-sm">+41 00 000 00 00</span>
-                            </a>
-                            <a
-                                href="mailto:contact@sweetemballages.ch"
-                                className="flex items-center gap-3 text-[#A0A0A0] hover:text-white transition-colors"
-                            >
-                                <Mail className="w-4 h-4 text-kraft" />
-                                <span className="font-sans text-sm">
-                                    contact@sweetemballages.ch
-                                </span>
-                            </a>
-                            <div className="flex items-start gap-3 text-[#A0A0A0]">
-                                <MapPin className="w-4 h-4 text-kraft mt-0.5" />
-                                <span className="font-sans text-sm">
-                                    Rue de l&apos;Industrie 1<br />
-                                    1000 Lausanne, Suisse
-                                </span>
-                            </div>
+                            {contact.phone && (
+                                <a
+                                    href={telHref ?? '#'}
+                                    className="flex items-center gap-3 text-[#A0A0A0] hover:text-white transition-colors"
+                                >
+                                    <Phone className="w-4 h-4 text-kraft" />
+                                    <span className="font-sans text-sm">{contact.phone}</span>
+                                </a>
+                            )}
+                            {contact.email && (
+                                <a
+                                    href={`mailto:${contact.email}`}
+                                    className="flex items-center gap-3 text-[#A0A0A0] hover:text-white transition-colors"
+                                >
+                                    <Mail className="w-4 h-4 text-kraft" />
+                                    <span className="font-sans text-sm">{contact.email}</span>
+                                </a>
+                            )}
+                            {(contact.addressLine1 || contact.addressLine2 || contact.addressCountry) && (
+                                <div className="flex items-start gap-3 text-[#A0A0A0]">
+                                    <MapPin className="w-4 h-4 text-kraft mt-0.5" />
+                                    <span className="font-sans text-sm">
+                                        {contact.addressLine1}
+                                        {(contact.addressLine2 || contact.addressCountry) && (
+                                            <>
+                                                {contact.addressLine1 && <br />}
+                                                {[contact.addressLine2, contact.addressCountry].filter(Boolean).join(', ')}
+                                            </>
+                                        )}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </div>
 

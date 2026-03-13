@@ -4,6 +4,7 @@ import { ContactForm } from '@/components/contact/ContactForm'
 import { FadeIn, FadeInRight, ScaleIn } from '@/components/ui/Animations'
 import { Phone, Mail, MapPin, ArrowRight, MessageSquare, Clock3, Shield } from 'lucide-react'
 import Link from 'next/link'
+import { getContactInfo } from '@/lib/contact-info'
 
 export const metadata = {
     title: 'Contact | Sweet Emballages',
@@ -11,30 +12,33 @@ export const metadata = {
         'Contactez l\'équipe Sweet Emballages pour toute question. Service réservé aux professionnels des métiers de bouche en Suisse.',
 }
 
-const contactItems = [
-    {
-        icon: Phone,
-        label: 'Téléphone',
-        value: '076 504 10 69',
-        href: 'tel:+41765041069',
-        description: 'Lun–ven, 8h–18h',
-    },
-    {
-        icon: Mail,
-        label: 'Email',
-        value: 'contact@sweetemballages.ch',
-        href: 'mailto:contact@sweetemballages.ch',
-        description: 'Réponse sous 24h ouvrées',
-    },
-    {
-        icon: MapPin,
-        label: 'Adresse',
-        value: 'Route de la Venoge 2',
-        subvalue: '1302 Vufflens-la-Ville',
-        href: null,
-        description: 'Suisse',
-    },
-]
+function buildContactItems(info: Awaited<ReturnType<typeof getContactInfo>>) {
+    const telHref = info.phone ? `tel:${info.phone.replace(/\s/g, '')}` : null
+    return [
+        {
+            icon: Phone,
+            label: 'Téléphone',
+            value: info.phone,
+            href: telHref,
+            description: info.phoneHours,
+        },
+        {
+            icon: Mail,
+            label: 'Email',
+            value: info.email,
+            href: info.email ? `mailto:${info.email}` : null,
+            description: info.emailResponseTime,
+        },
+        {
+            icon: MapPin,
+            label: 'Adresse',
+            value: info.addressLine1,
+            subvalue: info.addressLine2,
+            href: null,
+            description: info.addressCountry,
+        },
+    ]
+}
 
 const commitments = [
     {
@@ -54,7 +58,10 @@ const commitments = [
     },
 ]
 
-export default function ContactPage() {
+export default async function ContactPage() {
+    const contactInfo = await getContactInfo()
+    const contactItems = buildContactItems(contactInfo)
+
     return (
         <main className="min-h-screen bg-background flex flex-col pt-16 lg:pt-20">
             <Navbar />
@@ -79,7 +86,7 @@ export default function ContactPage() {
                             <span className="w-6 h-px bg-kraft" />
                             Parlons de vos besoins
                         </span>
-                        <h1 className="font-heading text-4xl sm:text-5xl font-bold leading-[1.08] mb-5">
+                        <h1 className="font-heading text-4xl sm:text-5xl font-bold leading-[1.08] mb-5 text-white ">
                             Contactez-nous
                         </h1>
                         <p className="font-sans text-lg text-white/65 max-w-xl leading-relaxed mb-8">
@@ -103,7 +110,7 @@ export default function ContactPage() {
                     <div className="grid sm:grid-cols-3 gap-4 lg:gap-6">
                         {contactItems.map((item, i) => (
                             <FadeIn key={item.label} delay={i * 0.08}>
-                                {item.href ? (
+                                {item.href && item.value ? (
                                     <a
                                         href={item.href}
                                         className="group flex items-start gap-4 p-5 rounded-2xl border border-border hover:border-kraft hover:shadow-md hover:shadow-kraft/5 transition-all duration-300 bg-background"
@@ -133,9 +140,9 @@ export default function ContactPage() {
                                             <p className="font-heading text-sm font-bold text-charcoal">
                                                 {item.value}
                                             </p>
-                                            {item.subvalue && (
+                                            {item.subvalue ? (
                                                 <p className="font-sans text-sm text-charcoal">{item.subvalue}</p>
-                                            )}
+                                            ) : null}
                                             <p className="font-sans text-xs text-muted mt-0.5">{item.description}</p>
                                         </div>
                                     </div>

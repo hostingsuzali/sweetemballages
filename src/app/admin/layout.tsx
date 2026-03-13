@@ -1,6 +1,6 @@
 "use client"
 import { AdminAuthProvider } from '@/components/admin/AdminAuthProvider'
-import { LogOut, Package2, Tags, Workflow, MessageSquare, FileText } from 'lucide-react'
+import { LogOut, Package2, Tags, Workflow, MessageSquare, FileText, Phone } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -77,6 +77,12 @@ const Sidebar = ({ counts }: { counts: NavCounts }) => {
                     icon={Workflow}
                     label="Usages"
                     active={pathname?.includes('/admin/usages') ?? false}
+                />
+                <NavLink
+                    href="/admin/contact"
+                    icon={Phone}
+                    label="Infos contact"
+                    active={pathname?.includes('/admin/contact') ?? false}
                 />
 
                 {/* Divider */}
