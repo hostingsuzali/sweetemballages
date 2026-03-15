@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Trash2, Loader2, Tags } from 'lucide-react'
+import { Plus, Trash2, Loader2, Tags, X } from 'lucide-react'
 
 interface Category {
     id: string;
@@ -14,6 +14,10 @@ export default function CategoriesAdminPage() {
     const [newId, setNewId] = useState('')
     const [newLabel, setNewLabel] = useState('')
     const [saving, setSaving] = useState(false)
+    const [deleteModal, setDeleteModal] = useState<{ categoryId: string; categoryLabel: string; productCount: number } | null>(null)
+    const [deleteMode, setDeleteMode] = useState<'reassign' | 'delete_all'>('reassign')
+    const [reassignToId, setReassignToId] = useState('')
+    const [deleting, setDeleting] = useState(false)
 
     const loadCategories = useCallback(async () => {
         const { data, error } = await supabase
@@ -53,18 +57,89 @@ export default function CategoriesAdminPage() {
         setSaving(false)
     }
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) return
+    const handleDeleteClick = async (cat: Category) => {
+        const { count, error: countError } = await supabase
+            .from('produits')
+            .select('*', { count: 'exact', head: true })
+            .eq('category_id', cat.id)
 
-        const { error } = await supabase
-            .from('categories')
-            .delete()
-            .eq('id', id)
+        if (countError) {
+            alert(`Erreur: ${countError.message}`)
+            return
+        }
 
-        if (error) {
-            alert(`Erreur: ${error.message} (Assurez-vous qu'aucun produit n'utilise cette catégorie)`)
-        } else {
+        const productCount = count ?? 0
+        if (productCount === 0) {
+            if (!window.confirm(`Supprimer la catégorie « ${cat.label } » ?`)) return
+            const { error } = await supabase.from('categories').delete().eq('id', cat.id)
+            if (error) alert(`Erreur: ${error.message}`)
+            else loadCategories()
+            return
+        }
+
+        setDeleteModal({ categoryId: cat.id, categoryLabel: cat.label, productCount })
+        setReassignToId(categories.filter(c => c.id !== cat.id)[0]?.id ?? '')
+        setDeleteMode('reassign')
+    }
+
+    const handleReassignAndDelete = async () => {
+        if (!deleteModal || !reassignToId) return
+        setDeleting(true)
+        try {
+            const { error: updateError } = await supabase
+                .from('produits')
+                .update({ category_id: reassignToId })
+                .eq('category_id', deleteModal.categoryId)
+            if (updateError) throw updateError
+
+            const { error: deleteError } = await supabase
+                .from('categories')
+                .delete()
+                .eq('id', deleteModal.categoryId)
+            if (deleteError) throw deleteError
+
+            setDeleteModal(null)
             loadCategories()
+        } catch (err) {
+            const e = err as Error
+            alert(`Erreur: ${e.message}`)
+        } finally {
+            setDeleting(false)
+        }
+    }
+
+    const handleDeleteCategoryAndProducts = async () => {
+        if (!deleteModal) return
+        if (!window.confirm(`Supprimer la catégorie « ${deleteModal.categoryLabel} » et les ${deleteModal.productCount} produit(s) associé(s) ? Cette action est irréversible.`)) return
+        setDeleting(true)
+        try {
+            const { data: products } = await supabase
+                .from('produits')
+                .select('id, image_url')
+                .eq('category_id', deleteModal.categoryId)
+            const ids = (products ?? []).map(p => p.id)
+            const imagePaths = (products ?? []).map(p => p.image_url).filter((url): url is string => !!url)
+
+            for (const url of imagePaths) {
+                const pathParts = url.split('/')
+                const fileName = pathParts[pathParts.length - 1]
+                await supabase.storage.from('sweetemballage').remove([fileName])
+            }
+            if (ids.length > 0) {
+                await supabase.from('_ProductUsages').delete().in('A', ids)
+                const { error: prodErr } = await supabase.from('produits').delete().eq('category_id', deleteModal.categoryId)
+                if (prodErr) throw prodErr
+            }
+            const { error: catErr } = await supabase.from('categories').delete().eq('id', deleteModal.categoryId)
+            if (catErr) throw catErr
+
+            setDeleteModal(null)
+            loadCategories()
+        } catch (err) {
+            const e = err as Error
+            alert(`Erreur: ${e.message}`)
+        } finally {
+            setDeleting(false)
         }
     }
 
@@ -142,7 +217,7 @@ export default function CategoriesAdminPage() {
                                     </td>
                                     <td className="p-4 pr-6 text-right">
                                         <button
-                                            onClick={() => handleDelete(cat.id)}
+                                            onClick={() => handleDeleteClick(cat)}
                                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors inline-block"
                                             title="Supprimer"
                                         >
@@ -155,6 +230,89 @@ export default function CategoriesAdminPage() {
                     </table>
                 )}
             </div>
+
+            {/* Modal : réassigner les produits ou tout supprimer */}
+            {deleteModal && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="font-heading text-xl font-bold text-charcoal">Catégorie utilisée par des produits</h3>
+                            <button onClick={() => setDeleteModal(null)} className="p-1 hover:bg-gray-100 rounded-full text-gray-500">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <p className="font-sans text-muted mb-4">
+                            <strong>{deleteModal.productCount}</strong> produit(s) utilisent la catégorie « {deleteModal.categoryLabel} ». Que souhaitez-vous faire ?
+                        </p>
+
+                        <div className="space-y-3 mb-6">
+                            <label className="flex items-start gap-3 p-3 border border-border rounded-xl cursor-pointer hover:bg-gray-50/50 has-[:checked]:border-kraft has-[:checked]:bg-kraft/5">
+                                <input type="radio" name="deleteMode" value="reassign" checked={deleteMode === 'reassign'} onChange={() => setDeleteMode('reassign')} className="mt-1 text-kraft focus:ring-kraft" />
+                                <span className="font-sans text-sm text-charcoal">Réassigner les produits vers une autre catégorie, puis supprimer la catégorie</span>
+                            </label>
+                            <label className="flex items-start gap-3 p-3 border border-border rounded-xl cursor-pointer hover:bg-gray-50/50 has-[:checked]:border-kraft has-[:checked]:bg-kraft/5">
+                                <input type="radio" name="deleteMode" value="delete_all" checked={deleteMode === 'delete_all'} onChange={() => setDeleteMode('delete_all')} className="mt-1 text-kraft focus:ring-kraft" />
+                                <span className="font-sans text-sm text-charcoal">Supprimer la catégorie et tous les produits associés (irréversible)</span>
+                            </label>
+                        </div>
+
+                        {deleteMode === 'reassign' && (
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-charcoal mb-2 font-sans">Réassigner vers</label>
+                                <select
+                                    value={reassignToId}
+                                    onChange={(e) => setReassignToId(e.target.value)}
+                                    className="w-full px-4 py-2 border border-border rounded-xl focus:ring-2 focus:ring-kraft focus:border-transparent outline-none text-sm font-sans"
+                                >
+                                    {categories.filter(c => c.id !== deleteModal.categoryId).map((c) => (
+                                        <option key={c.id} value={c.id}>{c.label}</option>
+                                    ))}
+                                </select>
+                                {categories.filter(c => c.id !== deleteModal.categoryId).length === 0 && (
+                                    <p className="mt-2 text-sm text-amber-600 font-sans">Créez d’abord une autre catégorie pour pouvoir réassigner les produits.</p>
+                                )}
+                            </div>
+                        )}
+
+                        {deleteMode === 'delete_all' && (
+                            <p className="mb-6 text-sm text-red-600 font-sans bg-red-50 border border-red-100 rounded-xl p-3">
+                                Les {deleteModal.productCount} produit(s) et leurs images seront définitivement supprimés.
+                            </p>
+                        )}
+
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setDeleteModal(null)}
+                                className="px-4 py-2 font-medium text-muted hover:bg-gray-100 rounded-xl transition-colors"
+                            >
+                                Annuler
+                            </button>
+                            {deleteMode === 'reassign' ? (
+                                <button
+                                    type="button"
+                                    onClick={handleReassignAndDelete}
+                                    disabled={deleting || !reassignToId}
+                                    className="px-4 py-2 bg-kraft hover:bg-[#b09268] text-white font-medium rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    {deleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                                    Réassigner et supprimer
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteCategoryAndProducts}
+                                    disabled={deleting}
+                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    {deleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                                    Tout supprimer
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

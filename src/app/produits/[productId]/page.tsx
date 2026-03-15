@@ -6,14 +6,6 @@ import { Footer } from '@/components/layout/Footer'
 import { supabase } from '@/lib/supabase'
 import { getProductImageUrl } from '@/lib/storage'
 
-const categoryLabels: Record<string, string> = {
-    'pizza-snacking': 'Emballages Pizza & Snacking',
-    'barquettes-plats': 'Barquettes & Plats à Emporter',
-    'sacherie-transport': 'Sacherie & Transport',
-    'boucherie-conservation': 'Boucherie & Conservation',
-    'boissons-consommables': 'Boissons & Consommables',
-}
-
 export default async function ProductDetail({
     params
 }: {
@@ -32,6 +24,7 @@ export default async function ProductDetail({
         id: productData.id,
         name: productData.name,
         category: productData.category_id,
+        categoryLabel: (productData as { categories?: { label: string } | null }).categories?.label ?? productData.category_id,
         dimensions: productData.dimensions,
         packaging: productData.packaging,
         price: productData.price,
@@ -58,8 +51,6 @@ export default async function ProductDetail({
         )
     }
 
-    const categoryLabel = categoryLabels[product.category] ?? product.category
-
     return (
         <div className="bg-background min-h-screen flex flex-col pt-20">
             <Navbar />
@@ -78,7 +69,7 @@ export default async function ProductDetail({
                     {/* Content */}
                     <div>
                         <span className="font-sans text-sm font-medium text-kraft uppercase tracking-wider">
-                            {categoryLabel}
+                            {product.categoryLabel}
                         </span>
                         {product.customizable && (
                             <Badge className="ml-2 bg-green text-white hover:bg-[#4a724a]">

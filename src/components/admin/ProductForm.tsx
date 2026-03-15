@@ -1,8 +1,13 @@
 "use client"
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { X, Upload, Loader2, Save } from 'lucide-react'
 import { getProductImageUrl } from '@/lib/storage'
+
+interface CategoryOption {
+    id: string
+    label: string
+}
 
 export interface ProductFormData {
     id: string
@@ -46,7 +51,19 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
     const [uploading, setUploading] = useState(false)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [categories, setCategories] = useState<CategoryOption[]>([])
     const fileInputRef = useRef<HTMLInputElement>(null)
+
+    useEffect(() => {
+        const loadCategories = async () => {
+            const { data, error: err } = await supabase
+                .from('categories')
+                .select('id, label')
+                .order('label')
+            if (!err && data) setCategories(data)
+        }
+        loadCategories()
+    }, [])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const target = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -236,11 +253,9 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
                                     required
                                 >
                                     <option value="" disabled>Sélectionner une catégorie</option>
-                                    <option value="pizza-snacking">Emballages Pizza & Snacking</option>
-                                    <option value="barquettes-plats">Barquettes & Plats à Emporter</option>
-                                    <option value="sacherie-transport">Sacherie & Transport</option>
-                                    <option value="boucherie-conservation">Boucherie & Conservation</option>
-                                    <option value="boissons-consommables">Boissons & Consommables</option>
+                                    {categories.map((cat) => (
+                                        <option key={cat.id} value={cat.id}>{cat.label}</option>
+                                    ))}
                                 </select>
                             </div>
 
