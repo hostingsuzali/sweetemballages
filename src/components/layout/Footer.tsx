@@ -5,11 +5,11 @@ import { getContactInfo } from '@/lib/contact-info'
 
 const footerLinks = {
     produits: [
-        { label: 'Boîtes à pizza', href: '/produits?category=pizza' },
-        { label: 'Sacs alimentaires', href: '/produits?category=sacs' },
-        { label: 'Gobelets & vaisselle', href: '/produits?category=gobelets' },
-        { label: 'Papier & aluminium', href: '/produits?category=papier' },
-        { label: 'Boîtes repas', href: '/produits?category=repas' },
+        { label: 'Boîtes à pizza', href: '/produits?category=snacks' },
+        { label: 'Sacs alimentaires', href: '/produits?category=sacs-sacherie' },
+        { label: 'Gobelets & vaisselle', href: '/produits?category=gob-vais-jet' },
+        { label: 'Papier & aluminium', href: '/produits?category=hygiene-emballages' },
+        { label: 'Boîtes repas', href: '/produits?category=plats-emporter' },
     ],
     services: [
         { label: 'Personnalisation logo', href: '/personnalisation' },

@@ -12,7 +12,7 @@ import { FadeIn } from '@/components/ui/Animations'
 
 const categories = [
     {
-        id: 'pizza-snacking',
+        id: 'snacks',
         name: 'Emballages Pizza & Snacking',
         description: 'Boîtes pizza classiques, distributeur, boîtes sandwich',
         icon: Pizza,
@@ -22,7 +22,7 @@ const categories = [
         products: '5 références',
     },
     {
-        id: 'barquettes-plats',
+        id: 'plats-emporter',
         name: 'Barquettes & Plats à Emporter',
         description: 'Salades, pots avec couvercle, assiettes compartimentées',
         icon: Salad,
@@ -32,7 +32,7 @@ const categories = [
         products: '6 références',
     },
     {
-        id: 'sacherie-transport',
+        id: 'sacs-sacherie',
         name: 'Sacherie & Transport',
         description: 'Sacs cabas, kraft, bio, eco, primeur',
         icon: ShoppingBag,
@@ -42,7 +42,7 @@ const categories = [
         products: '8 références',
     },
     {
-        id: 'boucherie-conservation',
+        id: 'hygiene-emballages',
         name: 'Boucherie & Conservation',
         description: 'Sous-vide, papier boucherie',
         icon: Beef,
@@ -52,7 +52,7 @@ const categories = [
         products: '4 références',
     },
     {
-        id: 'boissons-consommables',
+        id: 'gob-vais-jet',
         name: 'Boissons & Consommables',
         description: 'Gobelets, serviettes, papier caisse',
         icon: Coffee,

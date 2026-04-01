@@ -5,9 +5,11 @@ const supabaseUrl =
 const supabaseAnonKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder";
 
-// Single GoTrueClient instance in the browser to avoid "Multiple GoTrueClient instances" warning
-const globalForSupabase = typeof window !== "undefined" ? window : (globalThis as typeof globalThis & { __supabase?: SupabaseClient });
-if (!globalForSupabase.__supabase) {
-  globalForSupabase.__supabase = createClient(supabaseUrl, supabaseAnonKey);
-}
-export const supabase = globalForSupabase.__supabase;
+const globalForSupabase = globalThis as unknown as {
+  supabase: SupabaseClient | undefined;
+};
+
+export const supabase =
+  globalForSupabase.supabase ?? createClient(supabaseUrl, supabaseAnonKey);
+
+if (process.env.NODE_ENV !== "production") globalForSupabase.supabase = supabase;

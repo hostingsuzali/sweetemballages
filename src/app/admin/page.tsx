@@ -139,7 +139,6 @@ export default function AdminDashboard() {
                                                     <div className="font-heading font-medium text-charcoal line-clamp-1 group-hover:text-kraft transition-colors">
                                                         {product.name}
                                                     </div>
-                                                    <div className="text-sm font-sans text-muted">ID: {product.id}</div>
                                                 </div>
                                             </div>
                                         </td>

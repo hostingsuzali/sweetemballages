@@ -1,5 +1,5 @@
 "use client"
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { MessageSquare, Mail, Phone, Building2, Clock, CheckCheck, Trash2, Eye, RefreshCw } from 'lucide-react'
 
@@ -32,6 +32,7 @@ export function MessagesClient({ messages: initial, error }: MessagesClientProps
     const [messages, setMessages] = useState<Message[]>(initial)
     const [selected, setSelected] = useState<Message | null>(null)
     const [loading, setLoading] = useState(false)
+    const [hasNewItem, setHasNewItem] = useState(false)
 
     const unreadCount = messages.filter((m) => !m.is_read).length
 
@@ -68,6 +69,48 @@ export function MessagesClient({ messages: initial, error }: MessagesClientProps
         setLoading(false)
     }
 
+    useEffect(() => {
+        void refresh()
+
+        const channel = supabase
+            .channel('admin-messages-live')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'contact_messages' },
+                (payload) => {
+                    const newMessage = payload.new as Message
+                    setMessages((prev) => {
+                        const withoutDuplicate = prev.filter((m) => m.id !== newMessage.id)
+                        return [newMessage, ...withoutDuplicate]
+                    })
+                    setHasNewItem(true)
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'contact_messages' },
+                (payload) => {
+                    const updated = payload.new as Message
+                    setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)))
+                    setSelected((prev) => (prev?.id === updated.id ? updated : prev))
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: 'DELETE', schema: 'public', table: 'contact_messages' },
+                (payload) => {
+                    const deletedId = String(payload.old.id)
+                    setMessages((prev) => prev.filter((m) => m.id !== deletedId))
+                    setSelected((prev) => (prev?.id === deletedId ? null : prev))
+                }
+            )
+            .subscribe()
+
+        return () => {
+            void supabase.removeChannel(channel)
+        }
+    }, [])
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -87,9 +130,17 @@ export function MessagesClient({ messages: initial, error }: MessagesClientProps
                             'Tous les messages lus'
                         )}
                     </p>
+                    {hasNewItem && (
+                        <p className="font-sans text-xs text-amber-700 mt-1">
+                            Nouveau message reçu
+                        </p>
+                    )}
                 </div>
                 <button
-                    onClick={refresh}
+                    onClick={() => {
+                        setHasNewItem(false)
+                        void refresh()
+                    }}
                     disabled={loading}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-white hover:bg-gray-50 text-charcoal font-medium text-sm transition-colors"
                 >

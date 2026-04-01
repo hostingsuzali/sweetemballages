@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
+import { AuthChangeEvent, Session } from '@supabase/supabase-js'
+
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -26,7 +28,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
         checkAuth()
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
             const isAuth = !!session
             setIsAuthenticated(isAuth)
             if (!isAuth && !pathname.includes('/admin/login')) {

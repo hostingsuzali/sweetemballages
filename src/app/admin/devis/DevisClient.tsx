@@ -1,5 +1,5 @@
 "use client"
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { FileText, Mail, Phone, Building2, Clock, CheckCheck, Trash2, Eye, RefreshCw } from 'lucide-react'
 
@@ -32,6 +32,7 @@ export function DevisClient({ devis: initial, error }: DevisClientProps) {
     const [devis, setDevis] = useState<Devis[]>(initial)
     const [selected, setSelected] = useState<Devis | null>(null)
     const [loading, setLoading] = useState(false)
+    const [hasNewItem, setHasNewItem] = useState(false)
 
     const unreadCount = devis.filter((d) => !d.is_read).length
 
@@ -68,6 +69,48 @@ export function DevisClient({ devis: initial, error }: DevisClientProps) {
         setLoading(false)
     }
 
+    useEffect(() => {
+        void refresh()
+
+        const channel = supabase
+            .channel('admin-devis-live')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'demandes_devis' },
+                (payload) => {
+                    const newDevis = payload.new as Devis
+                    setDevis((prev) => {
+                        const withoutDuplicate = prev.filter((d) => d.id !== newDevis.id)
+                        return [newDevis, ...withoutDuplicate]
+                    })
+                    setHasNewItem(true)
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'demandes_devis' },
+                (payload) => {
+                    const updated = payload.new as Devis
+                    setDevis((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))
+                    setSelected((prev) => (prev?.id === updated.id ? updated : prev))
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: 'DELETE', schema: 'public', table: 'demandes_devis' },
+                (payload) => {
+                    const deletedId = String(payload.old.id)
+                    setDevis((prev) => prev.filter((d) => d.id !== deletedId))
+                    setSelected((prev) => (prev?.id === deletedId ? null : prev))
+                }
+            )
+            .subscribe()
+
+        return () => {
+            void supabase.removeChannel(channel)
+        }
+    }, [])
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -87,9 +130,17 @@ export function DevisClient({ devis: initial, error }: DevisClientProps) {
                             'Toutes les demandes traitées'
                         )}
                     </p>
+                    {hasNewItem && (
+                        <p className="font-sans text-xs text-amber-700 mt-1">
+                            Nouvelle demande reçue
+                        </p>
+                    )}
                 </div>
                 <button
-                    onClick={refresh}
+                    onClick={() => {
+                        setHasNewItem(false)
+                        void refresh()
+                    }}
                     disabled={loading}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-white hover:bg-gray-50 text-charcoal font-medium text-sm transition-colors"
                 >

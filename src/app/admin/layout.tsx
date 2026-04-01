@@ -12,6 +12,11 @@ interface NavCounts {
     devis: number
 }
 
+interface AdminToast {
+    id: number
+    text: string
+}
+
 const NavLink = ({
     href,
     icon: Icon,
@@ -45,7 +50,7 @@ const Sidebar = ({ counts }: { counts: NavCounts }) => {
     const pathname = usePathname()
 
     return (
-        <aside className="w-64 bg-white border-r border-border flex flex-col hidden md:flex min-h-screen">
+        <aside className="hidden md:flex w-64 bg-white border-r border-border flex-col min-h-screen">
             <div className="p-6 border-b border-border flex items-center gap-3">
                 <Image
                     src="/logobrownblack.png"
@@ -125,6 +130,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const pathname = usePathname()
     const isLoginPage = pathname?.includes('/admin/login')
     const [counts, setCounts] = useState<NavCounts>({ messages: 0, devis: 0 })
+    const [toasts, setToasts] = useState<AdminToast[]>([])
+
+    const pushToast = (text: string) => {
+        const id = Date.now() + Math.floor(Math.random() * 10_000)
+        setToasts((prev) => [...prev, { id, text }])
+        setTimeout(() => {
+            setToasts((prev) => prev.filter((toast) => toast.id !== id))
+        }, 5000)
+    }
 
     useEffect(() => {
         const fetchCounts = async () => {
@@ -139,10 +153,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
 
         if (!isLoginPage) {
-            fetchCounts()
-            // Refresh every 60s
-            const interval = setInterval(fetchCounts, 60_000)
-            return () => clearInterval(interval)
+            void fetchCounts()
+
+            const channel = supabase
+                .channel('admin-nav-counts-live')
+                .on(
+                    'postgres_changes',
+                    { event: '*', schema: 'public', table: 'contact_messages' },
+                    (payload) => {
+                        void fetchCounts()
+                        if (payload.eventType === 'INSERT') {
+                            pushToast('Nouveau message reçu')
+                        }
+                    }
+                )
+                .on(
+                    'postgres_changes',
+                    { event: '*', schema: 'public', table: 'demandes_devis' },
+                    (payload) => {
+                        void fetchCounts()
+                        if (payload.eventType === 'INSERT') {
+                            pushToast('Nouvelle demande de devis reçue')
+                        }
+                    }
+                )
+                .subscribe()
+
+            return () => {
+                void supabase.removeChannel(channel)
+            }
         }
     }, [isLoginPage])
 
@@ -173,6 +212,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             {children}
                         </div>
                     </main>
+
+                    <div className="fixed top-4 right-4 z-50 space-y-2 w-[320px] max-w-[calc(100vw-2rem)] pointer-events-none">
+                        {toasts.map((toast) => (
+                            <div
+                                key={toast.id}
+                                className="rounded-xl border border-amber-200 bg-amber-50 text-amber-900 shadow-sm px-4 py-3 font-sans text-sm"
+                            >
+                                {toast.text}
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
         </AdminAuthProvider>

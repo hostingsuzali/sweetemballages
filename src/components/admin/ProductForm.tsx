@@ -28,6 +28,34 @@ interface ProductFormProps {
 export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProps) {
     const isEdit = !!initialData
 
+    const toSlug = (value: string) =>
+        value
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+
+    const getUniqueProductId = async (baseValue: string) => {
+        const baseSlug = toSlug(baseValue) || `produit-${Date.now()}`
+        let candidate = baseSlug
+        let counter = 2
+
+        while (true) {
+            const { data, error } = await supabase
+                .from('produits')
+                .select('id')
+                .eq('id', candidate)
+                .maybeSingle()
+
+            if (error) throw error
+            if (!data) return candidate
+
+            candidate = `${baseSlug}-${counter}`
+            counter += 1
+        }
+    }
+
     const [formData, setFormData] = useState<ProductFormData>(initialData || {
         id: '',
         name: '',
@@ -118,8 +146,16 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
         setError(null)
 
         try {
+            const productId = isEdit
+                ? formData.id
+                : await getUniqueProductId(formData.name.trim())
+
+            if (!productId) {
+                throw new Error('Veuillez renseigner un ID produit valide.')
+            }
+
             const produitPayload = {
-                id: formData.id,
+                id: productId,
                 name: formData.name,
                 category_id: formData.category_id || formData.category,
                 dimensions: formData.dimensions,
@@ -147,10 +183,10 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
             }
 
             // Sync usages relations
-            await supabase.from('_ProductUsages').delete().eq('A', formData.id)
+            await supabase.from('_ProductUsages').delete().eq('A', productId)
 
             if (formData.usage && formData.usage.length > 0) {
-                const usagesData = formData.usage.map(uId => ({ A: formData.id, B: uId }))
+                const usagesData = formData.usage.map(uId => ({ A: productId, B: uId }))
                 const { error: usageError } = await supabase.from('_ProductUsages').insert(usagesData)
                 if (usageError) throw usageError
             }
@@ -217,11 +253,6 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
 
                         <div className="grid grid-cols-2 gap-6">
                             <div className="col-span-2 sm:col-span-1">
-                                <label className="block text-sm font-medium text-charcoal mb-2">ID Produit (slug-like)</label>
-                                <input type="text" name="id" value={formData.id} onChange={handleChange} required disabled={isEdit} className="w-full px-4 py-2 border border-border rounded-xl focus:ring-2 focus:ring-kraft focus:border-transparent outline-none disabled:bg-gray-100" placeholder="ex: boite-pizza-33" />
-                            </div>
-
-                            <div className="col-span-2 sm:col-span-1">
                                 <label className="block text-sm font-medium text-charcoal mb-2">Nom du produit</label>
                                 <input type="text" name="name" value={formData.name} onChange={handleChange} required className="w-full px-4 py-2 border border-border rounded-xl focus:ring-2 focus:ring-kraft focus:border-transparent outline-none" />
                             </div>
@@ -236,11 +267,11 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
                                     required
                                 >
                                     <option value="" disabled>Sélectionner une catégorie</option>
-                                    <option value="pizza-snacking">Emballages Pizza & Snacking</option>
-                                    <option value="barquettes-plats">Barquettes & Plats à Emporter</option>
-                                    <option value="sacherie-transport">Sacherie & Transport</option>
-                                    <option value="boucherie-conservation">Boucherie & Conservation</option>
-                                    <option value="boissons-consommables">Boissons & Consommables</option>
+                                    <option value="snacks">Pizza & Snacking</option>
+                                    <option value="plats-emporter">Plats a Emporter & Barquettes</option>
+                                    <option value="sacs-sacherie">Sacs & Sacherie</option>
+                                    <option value="hygiene-emballages">Hygiène & Emballage</option>
+                                    <option value="gob-vais-jet">Gobelets & Vaisselle Jetable</option>
                                 </select>
                             </div>
 

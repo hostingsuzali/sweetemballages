@@ -7,11 +7,11 @@ import { supabase } from '@/lib/supabase'
 import { getProductImageUrl } from '@/lib/storage'
 
 const categoryLabels: Record<string, string> = {
-    'pizza-snacking': 'Emballages Pizza & Snacking',
-    'barquettes-plats': 'Barquettes & Plats à Emporter',
-    'sacherie-transport': 'Sacherie & Transport',
-    'boucherie-conservation': 'Boucherie & Conservation',
-    'boissons-consommables': 'Boissons & Consommables',
+    'snacks': 'Pizza & Snacking',
+    'plats-emporter': 'Plats a Emporter & Barquettes',
+    'sacs-sacherie': 'Sacs & Sacherie',
+    'hygiene-emballages': 'Hygiène & Emballage',
+    'gob-vais-jet': 'Gobelets & Vaisselle Jetable',
 }
 
 export default async function ProductDetail({
