@@ -1,8 +1,13 @@
 "use client"
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { X, Upload, Loader2, Save } from 'lucide-react'
 import { getProductImageUrl } from '@/lib/storage'
+
+interface CategoryOption {
+    id: string
+    label: string
+}
 
 export interface ProductFormData {
     id: string
@@ -74,7 +79,19 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
     const [uploading, setUploading] = useState(false)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [categories, setCategories] = useState<CategoryOption[]>([])
     const fileInputRef = useRef<HTMLInputElement>(null)
+
+    useEffect(() => {
+        const loadCategories = async () => {
+            const { data, error: err } = await supabase
+                .from('categories')
+                .select('id, label')
+                .order('label')
+            if (!err && data) setCategories(data)
+        }
+        loadCategories()
+    }, [])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const target = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -223,7 +240,7 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
                         {/* Image Upload */}
                         <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-border rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors">
                             {formData.image_url ? (
-                                <div className="relative w-full max-w-xs aspect-[4/3]">
+                                <div className="relative w-full max-w-xs aspect-4/3">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img src={getProductImageUrl(formData.image_url)} alt="Product" className="w-full h-full object-cover rounded-xl" />
                                     <button
@@ -238,7 +255,7 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
                                 <div className="text-center w-full">
                                     <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                                     <div className="flex text-sm text-gray-600 justify-center">
-                                        <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-kraft hover:text-[#b09268] px-3 py-2 border border-border">
+                                        <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-kraft hover:text-kraft-hover px-3 py-2 border border-border">
                                             <span>Télécharger une image</span>
                                             <input id="file-upload" name="file-upload" type="file" className="sr-only" accept="image/*" onChange={uploadImage} disabled={uploading} ref={fileInputRef} />
                                         </label>
@@ -267,11 +284,9 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
                                     required
                                 >
                                     <option value="" disabled>Sélectionner une catégorie</option>
-                                    <option value="snacks">Pizza & Snacking</option>
-                                    <option value="plats-emporter">Plats a Emporter & Barquettes</option>
-                                    <option value="sacs-sacherie">Sacs & Sacherie</option>
-                                    <option value="hygiene-emballages">Hygiène & Emballage</option>
-                                    <option value="gob-vais-jet">Gobelets & Vaisselle Jetable</option>
+                                    {categories.map((cat) => (
+                                        <option key={cat.id} value={cat.id}>{cat.label}</option>
+                                    ))}
                                 </select>
                             </div>
 
@@ -318,7 +333,7 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
                             <button type="button" onClick={onClose} className="px-6 py-3 font-medium text-muted hover:bg-gray-100 rounded-xl transition-colors">
                                 Annuler
                             </button>
-                            <button type="submit" disabled={saving || uploading} className="px-6 py-3 bg-kraft hover:bg-[#b09268] text-white rounded-xl font-medium transition-colors flex items-center space-x-2 disabled:opacity-50">
+                            <button type="submit" disabled={saving || uploading} className="px-6 py-3 bg-kraft hover:bg-kraft-hover text-white rounded-xl font-medium transition-colors flex items-center space-x-2 disabled:opacity-50">
                                 {saving ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /><span>Enregistrement...</span></>
                                 ) : (

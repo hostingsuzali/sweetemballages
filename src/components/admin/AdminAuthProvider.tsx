@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
 import { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
