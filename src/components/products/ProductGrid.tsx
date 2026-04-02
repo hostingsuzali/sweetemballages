@@ -34,7 +34,12 @@ export function ProductGrid({ products, variant = 'default' }: ProductGridProps)
     return (
         <div className={gridClass}>
             {products.map((product, index) => (
-                <ProductCard key={product.id} product={product} index={index} />
+                <ProductCard
+                    key={product.id}
+                    product={product}
+                    index={index}
+                    revealImmediately={variant === 'nested'}
+                />
             ))}
         </div>
     )

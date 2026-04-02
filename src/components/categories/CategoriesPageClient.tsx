@@ -6,7 +6,7 @@ import { ArrowRight, LayoutGrid } from 'lucide-react'
 import { ProductGrid } from '@/components/products/ProductGrid'
 import type { Product } from '@/components/products/ProductCard'
 import { supabase } from '@/lib/supabase'
-import { normalizeId } from '@/lib/catalogIds'
+import { normalizeId, resolveProductCategoryNormId } from '@/lib/catalogIds'
 import { FadeIn } from '@/components/ui/Animations'
 
 export function CategoriesPageClient() {
@@ -16,38 +16,46 @@ export function CategoriesPageClient() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const { data, error } = await supabase
-                .from('produits')
-                .select('*, categories(label), _ProductUsages(usages(id))')
-                .order('created_at', { ascending: false })
+            const [{ data, error }, { data: catData }] = await Promise.all([
+                supabase
+                    .from('produits')
+                    .select('*, categories(id, label), _ProductUsages(usages(id))')
+                    .order('created_at', { ascending: false }),
+                supabase.from('categories').select('*').order('label'),
+            ])
+
+            const catRows = (catData ?? []) as { id: string; label: string }[]
+
+            if (catRows.length) {
+                setCategories(
+                    catRows.map((cat) => ({
+                        id: normalizeId(cat.id),
+                        label: cat.label,
+                    })),
+                )
+            }
 
             if (!error && data) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const formatted: Product[] = data.map((item: any) => ({
-                    id: item.id,
-                    name: item.name,
-                    category: item.categories?.label || item.category_id,
-                    categoryId: normalizeId(item.category_id),
-                    dimensions: item.dimensions,
-                    packaging: item.packaging,
-                    price: item.price,
-                    priceUnit: item.price_unit,
-                    customizable: item.customizable,
-                    usage: item._ProductUsages?.map((u: { usages: { id: string } }) => u.usages.id) || [],
-                    description: item.description,
-                    image_url: item.image_url,
-                }))
+                const formatted: Product[] = data.map((item: any) => {
+                    const j = item.categories
+                    const labelFromJoin = Array.isArray(j) ? j[0]?.label : j?.label
+                    return {
+                        id: item.id,
+                        name: item.name,
+                        category: labelFromJoin || item.category_id,
+                        categoryId: resolveProductCategoryNormId(item.category_id, item.categories, catRows),
+                        dimensions: item.dimensions,
+                        packaging: item.packaging,
+                        price: item.price,
+                        priceUnit: item.price_unit,
+                        customizable: item.customizable,
+                        usage: item._ProductUsages?.map((u: { usages: { id: string } }) => u.usages.id) || [],
+                        description: item.description,
+                        image_url: item.image_url,
+                    }
+                })
                 setProducts(formatted)
-            }
-
-            const { data: catData } = await supabase.from('categories').select('*').order('label')
-            if (catData) {
-                setCategories(
-                    catData.map((cat: { id: string; label: string }) => ({
-                        ...cat,
-                        id: normalizeId(cat.id),
-                    })),
-                )
             }
 
             setLoading(false)
@@ -59,13 +67,21 @@ export function CategoriesPageClient() {
     const productsByCategory = useMemo(() => {
         const map = new Map<string, Product[]>()
         for (const p of products) {
-            const key = p.categoryId || 'other'
+            const key = p.categoryId && p.categoryId !== 'all' ? p.categoryId : 'all'
             const list = map.get(key) ?? []
             list.push(p)
             map.set(key, list)
         }
         return map
     }, [products])
+
+    const orphanProducts = useMemo(() => {
+        const known = new Set(categories.map((c) => c.id))
+        return products.filter((p) => {
+            const id = p.categoryId ?? 'all'
+            return id === 'all' || !known.has(id)
+        })
+    }, [products, categories])
 
     return (
         <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 w-full">
@@ -156,6 +172,34 @@ export function CategoriesPageClient() {
                                 </section>
                             )
                         })}
+
+                        {orphanProducts.length > 0 && (
+                            <section
+                                id="cat-autres"
+                                className="scroll-mt-28 border-t border-border pt-12"
+                            >
+                                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+                                    <div>
+                                        <h2 className="font-heading text-2xl sm:text-3xl font-bold text-charcoal mb-2">
+                                            Autres références
+                                        </h2>
+                                        <p className="font-sans text-sm text-muted">
+                                            Produits sans catégorie reconnue ou à rattacher.
+                                        </p>
+                                    </div>
+                                    <Link
+                                        href="/produits"
+                                        className="inline-flex items-center gap-2 font-sans text-sm font-semibold text-kraft hover:text-charcoal transition-colors"
+                                    >
+                                        Ouvrir le catalogue
+                                        <ArrowRight className="w-4 h-4" />
+                                    </Link>
+                                </div>
+                                <div className="rounded-2xl border border-border/80 bg-white/60 p-4 sm:p-6">
+                                    <ProductGrid products={orphanProducts} variant="nested" />
+                                </div>
+                            </section>
+                        )}
                     </div>
 
                     {categories.length === 0 && !loading && (
