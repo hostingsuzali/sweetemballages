@@ -5,9 +5,11 @@ import { FadeIn } from '@/components/ui/Animations'
 
 interface ProductGridProps {
     products: Product[]
+    /** Slightly denser grid for category sub-sections */
+    variant?: 'default' | 'nested'
 }
 
-export function ProductGrid({ products }: ProductGridProps) {
+export function ProductGrid({ products, variant = 'default' }: ProductGridProps) {
     if (products.length === 0) {
         return (
             <FadeIn className="text-center py-16">
@@ -24,8 +26,13 @@ export function ProductGrid({ products }: ProductGridProps) {
         )
     }
 
+    const gridClass =
+        variant === 'nested'
+            ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch'
+            : 'grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch'
+
     return (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
+        <div className={gridClass}>
             {products.map((product, index) => (
                 <ProductCard key={product.id} product={product} index={index} />
             ))}

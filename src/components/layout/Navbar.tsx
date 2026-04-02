@@ -8,6 +8,7 @@ import { ChevronRight } from 'lucide-react'
 
 const navLinks = [
     { href: '/', label: 'Accueil' },
+    { href: '/categories', label: 'Catégories' },
     { href: '/produits', label: 'Produits' },
     { href: '/personnalisation', label: 'Personnalisation' },
 ]

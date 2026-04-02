@@ -9,6 +9,11 @@ interface CategoryOption {
     label: string
 }
 
+interface UsageOption {
+    id: string
+    label: string
+}
+
 export interface ProductFormData {
     id: string
     name: string
@@ -80,17 +85,19 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [categories, setCategories] = useState<CategoryOption[]>([])
+    const [usageOptions, setUsageOptions] = useState<UsageOption[]>([])
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
-        const loadCategories = async () => {
-            const { data, error: err } = await supabase
-                .from('categories')
-                .select('id, label')
-                .order('label')
-            if (!err && data) setCategories(data)
+        const loadLookups = async () => {
+            const [catRes, usageRes] = await Promise.all([
+                supabase.from('categories').select('id, label').order('label'),
+                supabase.from('usages').select('id, label').order('label'),
+            ])
+            if (!catRes.error && catRes.data) setCategories(catRes.data)
+            if (!usageRes.error && usageRes.data) setUsageOptions(usageRes.data)
         }
-        loadCategories()
+        loadLookups()
     }, [])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -105,12 +112,18 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
         if (type === 'checkbox') {
             const checked = (e.target as HTMLInputElement).checked
             setFormData(prev => ({ ...prev, [name]: checked }))
-        } else if (name === 'usage') {
-            // simple comma-separated usage array for MVP
-            setFormData(prev => ({ ...prev, usage: value.split(',').map((s: string) => s.trim()).filter((s: string) => s) }))
         } else {
             setFormData(prev => ({ ...prev, [name]: parsedValue }))
         }
+    }
+
+    const toggleUsage = (usageId: string) => {
+        setFormData(prev => ({
+            ...prev,
+            usage: prev.usage.includes(usageId)
+                ? prev.usage.filter(id => id !== usageId)
+                : [...prev.usage, usageId],
+        }))
     }
 
     const uploadImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -203,7 +216,12 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
             await supabase.from('_ProductUsages').delete().eq('A', productId)
 
             if (formData.usage && formData.usage.length > 0) {
-                const usagesData = formData.usage.map(uId => ({ A: productId, B: uId }))
+                const validIds = new Set(usageOptions.map(u => u.id))
+                const usageIds =
+                    usageOptions.length > 0
+                        ? formData.usage.filter(id => validIds.has(id))
+                        : formData.usage
+                const usagesData = usageIds.map(uId => ({ A: productId, B: uId }))
                 const { error: usageError } = await supabase.from('_ProductUsages').insert(usagesData)
                 if (usageError) throw usageError
             }
@@ -310,9 +328,25 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
                                 <input type="text" name="price_unit" value={formData.price_unit} onChange={handleChange} required className="w-full px-4 py-2 border border-border rounded-xl focus:ring-2 focus:ring-kraft focus:border-transparent outline-none" placeholder="/ carton" />
                             </div>
 
-                            <div className="col-span-2 sm:col-span-1">
-                                <label className="block text-sm font-medium text-charcoal mb-2">Usage (séparé par virgules)</label>
-                                <input type="text" name="usage" value={formData.usage.join(', ')} onChange={handleChange} className="w-full px-4 py-2 border border-border rounded-xl focus:ring-2 focus:ring-kraft focus:border-transparent outline-none" placeholder="pizza, traiteur..." />
+                            <div className="col-span-2">
+                                <span className="block text-sm font-medium text-charcoal mb-2">Usages</span>
+                                {usageOptions.length === 0 ? (
+                                    <p className="text-sm text-muted">Aucun usage en base. Créez-en dans Administration → Usages.</p>
+                                ) : (
+                                    <div className="flex flex-wrap gap-3">
+                                        {usageOptions.map((u) => (
+                                            <label key={u.id} className="inline-flex items-center gap-2 text-sm text-charcoal cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.usage.includes(u.id)}
+                                                    onChange={() => toggleUsage(u.id)}
+                                                    className="w-4 h-4 text-kraft border-border rounded focus:ring-kraft bg-white cursor-pointer"
+                                                />
+                                                <span>{u.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="col-span-2">

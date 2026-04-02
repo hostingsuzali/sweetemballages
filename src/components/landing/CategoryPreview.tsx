@@ -96,7 +96,7 @@ export function CategoryPreview() {
                             className={`${category.span} group relative overflow-hidden rounded-3xl border border-border/50 hover:border-kraft/50 transition-all duration-500 hover:shadow-2xl hover:shadow-kraft/5`}
                         >
                             <Link
-                                href={`/produits?category=${category.id}`}
+                                href={`/categories#cat-${category.id}`}
                                 className="flex flex-col h-full w-full p-6 sm:p-8"
                             >
                                 {/* Background Image with subtle darkening overlay if needed */}
