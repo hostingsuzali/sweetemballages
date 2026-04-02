@@ -1,11 +1,17 @@
 "use client"
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Fragment } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Plus, Trash2, Loader2, Tags, X } from 'lucide-react'
+import { Plus, Trash2, Loader2, Tags, X, ChevronRight, ChevronDown, ExternalLink } from 'lucide-react'
 
 interface Category {
-    id: string;
-    label: string;
+    id: string
+    label: string
+}
+
+interface ProductRef {
+    id: string
+    name: string
 }
 
 export default function CategoriesAdminPage() {
@@ -17,6 +23,8 @@ export default function CategoriesAdminPage() {
     const [deleteMode, setDeleteMode] = useState<'reassign' | 'delete_all'>('reassign')
     const [reassignToId, setReassignToId] = useState('')
     const [deleting, setDeleting] = useState(false)
+    const [productsByCategory, setProductsByCategory] = useState<Record<string, ProductRef[]>>({})
+    const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null)
 
     const toSlug = (value: string) =>
         value
@@ -47,14 +55,27 @@ export default function CategoriesAdminPage() {
     }
 
     const loadCategories = useCallback(async () => {
-        const { data, error } = await supabase
-            .from('categories')
-            .select('*')
-            .order('label')
+        const [{ data, error }, { data: prodRows, error: prodErr }] = await Promise.all([
+            supabase.from('categories').select('*').order('label'),
+            supabase.from('produits').select('id, name, category_id').order('name'),
+        ])
 
         if (!error && data) {
             setCategories(data)
         }
+
+        if (!prodErr && prodRows) {
+            const map: Record<string, ProductRef[]> = {}
+            for (const row of prodRows as { id: string; name: string; category_id: string | null }[]) {
+                const key = row.category_id ?? ''
+                if (!map[key]) map[key] = []
+                map[key].push({ id: row.id, name: row.name })
+            }
+            setProductsByCategory(map)
+        } else {
+            setProductsByCategory({})
+        }
+
         setLoading(false)
     }, [])
 
@@ -220,22 +241,84 @@ export default function CategoriesAdminPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {categories.map((cat) => (
-                                <tr key={cat.id} className="hover:bg-gray-50/50 transition-colors">
-                                    <td className="p-4 pl-6 font-heading font-medium text-charcoal">
-                                        {cat.label}
-                                    </td>
-                                    <td className="p-4 pr-6 text-right">
-                                        <button
-                                            onClick={() => handleDeleteClick(cat)}
-                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors inline-block"
-                                            title="Supprimer"
-                                        >
-                                            <Trash2 className="w-5 h-5" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
+                            {categories.map((cat) => {
+                                const products = productsByCategory[cat.id] ?? []
+                                const count = products.length
+                                const isOpen = expandedCategoryId === cat.id
+
+                                return (
+                                    <Fragment key={cat.id}>
+                                        <tr className="hover:bg-gray-50/50 transition-colors">
+                                            <td className="p-4 pl-6 font-heading font-medium text-charcoal">
+                                                <div className="flex items-center gap-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setExpandedCategoryId(isOpen ? null : cat.id)}
+                                                        className="p-1 rounded-lg text-muted hover:text-charcoal hover:bg-gray-100 transition-colors"
+                                                        aria-expanded={isOpen}
+                                                        title={count ? 'Afficher les produits' : 'Aucun produit'}
+                                                    >
+                                                        {count > 0 ? (
+                                                            isOpen ? (
+                                                                <ChevronDown className="w-5 h-5" />
+                                                            ) : (
+                                                                <ChevronRight className="w-5 h-5" />
+                                                            )
+                                                        ) : (
+                                                            <span className="inline-block w-5 h-5" />
+                                                        )}
+                                                    </button>
+                                                    <span>{cat.label}</span>
+                                                    <span className="font-sans text-xs font-semibold text-muted bg-gray-100 px-2 py-0.5 rounded-full">
+                                                        {count} produit{count === 1 ? '' : 's'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 pr-6 text-right">
+                                                <button
+                                                    onClick={() => handleDeleteClick(cat)}
+                                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors inline-block"
+                                                    title="Supprimer"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {isOpen && count > 0 && (
+                                            <tr className="bg-gray-50/80">
+                                                <td colSpan={2} className="px-4 py-3 pl-14 pr-6 border-t border-border/60">
+                                                    <ul className="space-y-2 font-sans text-sm text-charcoal">
+                                                        {products.map((p) => (
+                                                            <li
+                                                                key={p.id}
+                                                                className="flex items-center justify-between gap-3 py-1 border-b border-border/40 last:border-0"
+                                                            >
+                                                                <span className="truncate">{p.name}</span>
+                                                                <Link
+                                                                    href={`/produits/${p.id}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-kraft hover:text-charcoal"
+                                                                >
+                                                                    Voir
+                                                                    <ExternalLink className="w-3.5 h-3.5" />
+                                                                </Link>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                    <p className="mt-3 text-xs text-muted font-sans">
+                                                        Gérez les fiches depuis la page{' '}
+                                                        <Link href="/admin" className="text-kraft font-semibold hover:underline">
+                                                            Produits
+                                                        </Link>
+                                                        .
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </Fragment>
+                                )
+                            })}
                         </tbody>
                     </table>
                 )}
