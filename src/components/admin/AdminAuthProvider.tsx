@@ -4,8 +4,6 @@ import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
-import { AuthChangeEvent, Session } from '@supabase/supabase-js'
-
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -13,23 +11,13 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
 
     useEffect(() => {
-        const checkAuth = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            const isAuth = !!session
-            setIsAuthenticated(isAuth)
+        let cancelled = false
 
-            if (!isAuth && !pathname.includes('/admin/login')) {
-                router.push('/admin/login')
-            } else if (isAuth && pathname.includes('/admin/login')) {
-                router.push('/admin')
-            }
-
-            setIsLoading(false)
+        const finishLoading = () => {
+            if (!cancelled) setIsLoading(false)
         }
 
-        checkAuth()
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+        const applySession = (session: Session | null) => {
             const isAuth = !!session
             setIsAuthenticated(isAuth)
             if (!isAuth && !pathname.includes('/admin/login')) {
@@ -37,9 +25,34 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
             } else if (isAuth && pathname.includes('/admin/login')) {
                 router.push('/admin')
             }
+        }
+
+        const checkAuth = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession()
+                if (cancelled) return
+                applySession(session)
+            } catch {
+                if (!cancelled) {
+                    setIsAuthenticated(false)
+                    if (!pathname.includes('/admin/login')) router.push('/admin/login')
+                }
+            } finally {
+                finishLoading()
+            }
+        }
+
+        void checkAuth()
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+            applySession(session)
+            finishLoading()
         })
 
-        return () => subscription.unsubscribe()
+        return () => {
+            cancelled = true
+            subscription.unsubscribe()
+        }
     }, [pathname, router])
 
     if (isLoading) {

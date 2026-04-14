@@ -24,15 +24,17 @@ export interface Product {
 interface ProductCardProps {
     product: Product
     index?: number
+    /** Avoid scroll-reveal (opacity 0) when cards are nested; in-view can fail inside overflow/stacking contexts. */
+    revealImmediately?: boolean
 }
 
-export function ProductCard({ product, index = 0 }: ProductCardProps) {
+export function ProductCard({ product, index = 0, revealImmediately = false }: ProductCardProps) {
     return (
         <motion.div
-            initial={{ y: 30, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: index * 0.08, duration: 0.5, ease: 'easeOut' }}
+            initial={revealImmediately ? { opacity: 1, y: 0 } : { y: 30, opacity: 0 }}
+            whileInView={revealImmediately ? undefined : { y: 0, opacity: 1 }}
+            viewport={revealImmediately ? undefined : { once: true }}
+            transition={{ delay: revealImmediately ? 0 : index * 0.08, duration: 0.5, ease: 'easeOut' }}
             className="h-full"
         >
             <Link

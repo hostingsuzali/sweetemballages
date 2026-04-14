@@ -5,27 +5,10 @@ import { ProductFilters } from '@/components/products/ProductFilters'
 import { ProductGrid } from '@/components/products/ProductGrid'
 import type { Product } from '@/components/products/ProductCard'
 import { supabase } from '@/lib/supabase'
+import { normalizeId, resolveProductCategoryNormId } from '@/lib/catalogIds'
 
 interface ProductsPageClientProps {
     initialCategory?: string
-}
-
-function normalizeId(value?: string) {
-    if (!value) return 'all'
-    const normalized = value.trim().toLowerCase().replace(/_/g, '-')
-    const aliases: Record<string, string> = {
-        pizza: 'snacks',
-        'pizza-snacking': 'snacks',
-        sacs: 'sacs-sacherie',
-        'sacherie-transport': 'sacs-sacherie',
-        gobelets: 'gob-vais-jet',
-        'boissons-consommables': 'gob-vais-jet',
-        papier: 'hygiene-emballages',
-        'boucherie-conservation': 'hygiene-emballages',
-        repas: 'plats-emporter',
-        'barquettes-plats': 'plats-emporter',
-    }
-    return aliases[normalized] ?? normalized
 }
 
 export function ProductsPageClient({ initialCategory }: ProductsPageClientProps) {
@@ -38,42 +21,50 @@ export function ProductsPageClient({ initialCategory }: ProductsPageClientProps)
 
     useEffect(() => {
         const fetchProducts = async () => {
-            const { data, error } = await supabase
-                .from('produits')
-                .select('*, categories(label), _ProductUsages(usages(id))')
-                .order('created_at', { ascending: false })
+            const [{ data, error }, { data: catData }, { data: usageData }] = await Promise.all([
+                supabase
+                    .from('produits')
+                    .select('*, categories(id, label), _ProductUsages(usages(id))')
+                    .order('created_at', { ascending: false }),
+                supabase.from('categories').select('*').order('label'),
+                supabase.from('usages').select('*').order('label'),
+            ])
 
-            if (!error && data) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const formattedProducts: Product[] = data.map((item: any) => ({
-                    id: item.id,
-                    name: item.name,
-                    category: item.categories?.label || item.category_id,
-                    categoryId: normalizeId(item.category_id),
-                    dimensions: item.dimensions,
-                    packaging: item.packaging,
-                    price: item.price,
-                    priceUnit: item.price_unit,
-                    customizable: item.customizable,
-                    usage: item._ProductUsages?.map((u: { usages: { id: string } }) => u.usages.id) || [],
-                    description: item.description,
-                    image_url: item.image_url
-                }))
-                setProducts(formattedProducts)
-            }
+            const catRows = (catData ?? []) as { id: string; label: string }[]
 
-            const { data: catData } = await supabase.from('categories').select('*').order('label')
-            if (catData) {
+            if (catRows.length) {
                 setCategories([
                     { id: 'all', label: 'Tous les produits' },
-                    ...catData.map((cat: { id: string; label: string }) => ({
-                        ...cat,
+                    ...catRows.map((cat) => ({
                         id: normalizeId(cat.id),
+                        label: cat.label,
                     })),
                 ])
             }
 
-            const { data: usageData } = await supabase.from('usages').select('*').order('label')
+            if (!error && data) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const formattedProducts: Product[] = data.map((item: any) => {
+                    const j = item.categories
+                    const labelFromJoin = Array.isArray(j) ? j[0]?.label : j?.label
+                    return {
+                        id: item.id,
+                        name: item.name,
+                        category: labelFromJoin || item.category_id,
+                        categoryId: resolveProductCategoryNormId(item.category_id, item.categories, catRows),
+                        dimensions: item.dimensions,
+                        packaging: item.packaging,
+                        price: item.price,
+                        priceUnit: item.price_unit,
+                        customizable: item.customizable,
+                        usage: item._ProductUsages?.map((u: { usages: { id: string } }) => u.usages.id) || [],
+                        description: item.description,
+                        image_url: item.image_url,
+                    }
+                })
+                setProducts(formattedProducts)
+            }
+
             if (usageData) setUsages([{ id: 'all', label: 'Tous usages' }, ...usageData])
 
             setLoading(false)
