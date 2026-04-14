@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { unstable_noStore as noStore } from 'next/cache'
 
 export interface ContactInfoData {
   phone: string
@@ -29,6 +30,9 @@ function getServerSupabase() {
 
 /** Fetch contact info for display (contact page, footer). Use in server components. */
 export async function getContactInfo(): Promise<ContactInfoData> {
+  // Always fetch fresh contact data (no static/render cache).
+  noStore()
+
   const supabase = getServerSupabase()
   if (!supabase) return defaults
 
