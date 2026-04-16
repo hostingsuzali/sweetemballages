@@ -136,13 +136,15 @@ export function ProductForm({ initialData, onClose, onSuccess }: ProductFormProp
             }
 
             const file = event.target.files[0]
-            const fileExt = file.name.split('.').pop()
+            const rawExt = file.name.split('.').pop() || 'png'
+            const safeExt = rawExt.toLowerCase().replace(/[^a-z0-9]/g, '') || 'png'
 
             // Use product ID as filename (with fallback to timestamp for new products without ID yet).
             // upsert: true means re-uploading for the same product will OVERWRITE the existing file
             // instead of creating a duplicate.
-            const baseId = formData.id || `new-${Date.now()}`
-            const filePath = `${baseId}.${fileExt}`
+            const baseIdRaw = formData.id || formData.name || `new-${Date.now()}`
+            const safeBaseId = toSlug(baseIdRaw) || `produit-${Date.now()}`
+            const filePath = `${safeBaseId}.${safeExt}`
 
             // If there's an existing image that has a different filename (e.g. old random name),
             // delete the old file first to avoid orphaned files.
