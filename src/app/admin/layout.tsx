@@ -1,6 +1,6 @@
 "use client"
 import { AdminAuthProvider } from '@/components/admin/AdminAuthProvider'
-import { LogOut, Package2, Tags, Workflow, MessageSquare, FileText, Phone } from 'lucide-react'
+import { LogOut, Package2, Tags, Workflow, MessageSquare, FileText, Phone, Receipt } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -110,6 +110,12 @@ const Sidebar = ({ counts }: { counts: NavCounts }) => {
                     label="Devis"
                     active={pathname?.includes('/admin/devis') ?? false}
                     badge={counts.devis}
+                />
+                <NavLink
+                    href="/admin/factures"
+                    icon={Receipt}
+                    label="Factures"
+                    active={pathname?.includes('/admin/factures') ?? false}
                 />
             </nav>
 

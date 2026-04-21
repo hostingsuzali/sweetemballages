@@ -105,3 +105,34 @@ CREATE POLICY "Admin can update contact info"
     TO authenticated
     USING (true)
     WITH CHECK (true);
+
+-- =============================================
+-- 4. factures (gestion interne uniquement)
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS factures (
+    id              TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+    invoice_number  TEXT NOT NULL UNIQUE,
+    company_name    TEXT NOT NULL,
+    email           TEXT NOT NULL,
+    billing_address TEXT NOT NULL,
+    issue_date      DATE NOT NULL,
+    due_date        DATE NOT NULL,
+    line_items      JSONB NOT NULL DEFAULT '[]'::jsonb,
+    notes           TEXT,
+    subtotal        NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    vat_rate        NUMERIC(5, 4) NOT NULL DEFAULT 0.0810,
+    vat_amount      NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    total           NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    status          TEXT NOT NULL DEFAULT 'draft',
+    sent_at         TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE factures ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admin can manage factures"
+    ON factures FOR ALL
+    TO authenticated
+    USING (true)
+    WITH CHECK (true);

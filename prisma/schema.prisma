@@ -84,3 +84,24 @@ model ContactInfo {
   @@map("contact_info")
 }
 
+model Facture {
+  id             String   @id @default(cuid())
+  invoiceNumber  String   @unique @map("invoice_number")
+  companyName    String   @map("company_name")
+  email          String
+  billingAddress String   @map("billing_address")
+  issueDate      DateTime @map("issue_date")
+  dueDate        DateTime @map("due_date")
+  lineItems      Json     @map("line_items")
+  notes          String?
+  subtotal       Float
+  vatRate        Float    @map("vat_rate")
+  vatAmount      Float    @map("vat_amount")
+  total          Float
+  status         String   @default("draft")
+  sentAt         DateTime? @map("sent_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("factures")
+}
+
