@@ -1,7 +1,7 @@
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { BrandingSteps } from '@/components/branding/BrandingSteps'
-import { ContactForm } from '@/components/contact/ContactForm'
+import { DevisRequestForm } from '@/components/devis/DevisRequestForm'
 
 export default function PersonnalisationPage() {
     return (
@@ -26,7 +26,7 @@ export default function PersonnalisationPage() {
 
                 {/* Contact For Branding */}
                 <div className="mt-16 mx-auto max-w-xl text-left">
-                    <ContactForm type="devis" />
+                    <DevisRequestForm />
                 </div>
 
             </div>

@@ -5,14 +5,27 @@ import { sendAdminQuoteNotification } from "@/lib/adminNotifications";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+interface RequestedItem {
+  productId: string;
+  name: string;
+  quantity: number;
+  unitPriceSnapshot: number;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { companyName, email, phone, message } = body;
+    const { companyName, email, phone, message, items } = body as {
+      companyName?: string;
+      email?: string;
+      phone?: string;
+      message?: string;
+      items?: RequestedItem[];
+    };
 
-    if (!companyName || !email || !message) {
+    if (!companyName || !email || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
-        { error: "Champs requis manquants" },
+        { error: "Champs requis manquants : entreprise, email et au moins un produit." },
         { status: 400 },
       );
     }
@@ -24,7 +37,8 @@ export async function POST(request: Request) {
         company_name: companyName,
         email,
         phone: phone || null,
-        message,
+        message: message || null,
+        items,
         is_read: false,
       },
     ]);
@@ -39,7 +53,8 @@ export async function POST(request: Request) {
         companyName,
         email,
         phone: phone || null,
-        message,
+        message: message || null,
+        items: items.map((item) => ({ name: item.name, quantity: item.quantity })),
       });
     } catch (mailError) {
       console.error("Devis email notification error:", mailError);

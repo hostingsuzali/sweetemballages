@@ -7,76 +7,82 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Label } from '@/components/ui/Label'
+import { ProductPicker, type SelectedItem } from '@/components/devis/ProductPicker'
 
-export function ContactForm() {
+export function DevisRequestForm() {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [submitted, setSubmitted] = useState(false)
+    const [items, setItems] = useState<SelectedItem[]>([])
     const [formData, setFormData] = useState({
         companyName: '',
         email: '',
         phone: '',
-        message: '',
+        notes: '',
     })
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setIsSubmitting(true)
 
+        if (items.length === 0) {
+            toast.error('Sélectionnez au moins un produit', {
+                description: 'Ajoutez un ou plusieurs produits du catalogue à votre demande.',
+            })
+            return
+        }
+
+        setIsSubmitting(true)
         try {
-            const res = await fetch('/api/contact', {
+            const res = await fetch('/api/devis', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+                body: JSON.stringify({
+                    companyName: formData.companyName,
+                    email: formData.email,
+                    phone: formData.phone,
+                    message: formData.notes,
+                    items,
+                }),
             })
 
             if (!res.ok) {
                 const data = await res.json()
-                throw new Error(data.error || 'Erreur lors de l\'envoi')
+                throw new Error(data.error || "Erreur lors de l'envoi")
             }
 
-            toast.success('Message envoyé !', {
+            toast.success('Demande de devis envoyée !', {
                 description: 'Nous vous répondrons dans les plus brefs délais.',
             })
 
             setSubmitted(true)
-            setFormData({ companyName: '', email: '', phone: '', message: '' })
+            setFormData({ companyName: '', email: '', phone: '', notes: '' })
+            setItems([])
         } catch (err) {
             const error = err as Error
-            toast.error('Échec de l\'envoi', { description: error.message })
+            toast.error("Échec de l'envoi", { description: error.message })
         } finally {
             setIsSubmitting(false)
         }
     }
 
-    const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-    ) => {
-        setFormData((prev) => ({
-            ...prev,
-            [e.target.name]: e.target.value,
-        }))
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
         if (submitted) setSubmitted(false)
     }
 
     return (
         <div className="relative bg-white rounded-3xl border border-border shadow-sm shadow-kraft/5 overflow-hidden">
-            {/* Top accent bar */}
             <div className="h-1 w-full bg-gradient-to-r from-kraft/60 via-kraft to-kraft/60" />
 
             <div className="p-6 lg:p-8 xl:p-10">
-                {/* Header */}
                 <div className="mb-8">
-                    <h2 className="font-heading text-2xl font-bold text-charcoal">
-                        Envoyez-nous un message
-                    </h2>
+                    <h2 className="font-heading text-2xl font-bold text-charcoal">Demander un devis</h2>
                     <p className="font-sans text-sm text-muted mt-1.5">
-                        Remplissez le formulaire et nous vous répondrons sous 24h ouvrées.
+                        Sélectionnez les produits qui vous intéressent et indiquez les quantités souhaitées.
                     </p>
                 </div>
 
                 <AnimatePresence mode="wait">
                     {submitted ? (
-                        /* ── Success state ── */
                         <motion.div
                             key="success"
                             initial={{ opacity: 0, scale: 0.95, y: 12 }}
@@ -88,21 +94,18 @@ export function ContactForm() {
                             <div className="w-16 h-16 rounded-full bg-green/10 flex items-center justify-center mb-5">
                                 <CheckCircle2 className="w-8 h-8 text-green" />
                             </div>
-                            <h3 className="font-heading text-xl font-bold text-charcoal mb-2">
-                                Message envoyé !
-                            </h3>
+                            <h3 className="font-heading text-xl font-bold text-charcoal mb-2">Demande envoyée !</h3>
                             <p className="font-sans text-sm text-muted max-w-xs leading-relaxed mb-6">
-                                Merci pour votre message. Notre équipe vous répondra dans les 24h ouvrées.
+                                Merci pour votre demande. Notre équipe vous répondra dans les 24h ouvrées.
                             </p>
                             <button
                                 onClick={() => setSubmitted(false)}
                                 className="font-sans text-sm font-semibold text-kraft hover:text-charcoal transition-colors underline underline-offset-2"
                             >
-                                Envoyer un autre message
+                                Envoyer une autre demande
                             </button>
                         </motion.div>
                     ) : (
-                        /* ── Form ── */
                         <motion.form
                             key="form"
                             onSubmit={handleSubmit}
@@ -112,7 +115,6 @@ export function ContactForm() {
                             transition={{ duration: 0.2 }}
                         >
                             <div className="space-y-5">
-                                {/* Row: Company + Email */}
                                 <div className="grid sm:grid-cols-2 gap-5">
                                     <div className="space-y-1.5 text-left">
                                         <Label htmlFor="companyName">
@@ -145,7 +147,6 @@ export function ContactForm() {
                                     </div>
                                 </div>
 
-                                {/* Phone */}
                                 <div className="space-y-1.5 text-left">
                                     <Label htmlFor="phone">
                                         Téléphone{' '}
@@ -161,23 +162,28 @@ export function ContactForm() {
                                     />
                                 </div>
 
-                                {/* Message */}
                                 <div className="space-y-1.5 text-left">
-                                    <Label htmlFor="message">
-                                        Message <span className="text-kraft">*</span>
+                                    <Label>
+                                        Produits souhaités <span className="text-kraft">*</span>
+                                    </Label>
+                                    <ProductPicker value={items} onChange={setItems} />
+                                </div>
+
+                                <div className="space-y-1.5 text-left">
+                                    <Label htmlFor="notes">
+                                        Précisions complémentaires{' '}
+                                        <span className="font-normal text-muted/70 text-xs">(optionnel)</span>
                                     </Label>
                                     <Textarea
-                                        id="message"
-                                        name="message"
-                                        required
-                                        value={formData.message}
+                                        id="notes"
+                                        name="notes"
+                                        value={formData.notes}
                                         onChange={handleChange}
-                                        placeholder="Comment pouvons-nous vous aider ?"
-                                        rows={5}
+                                        placeholder="Personnalisation logo, délai souhaité…"
+                                        rows={3}
                                     />
                                 </div>
 
-                                {/* Professional note */}
                                 <div className="flex items-center gap-2.5 p-3.5 bg-background rounded-xl border border-border">
                                     <span className="w-2 h-2 bg-green rounded-full flex-shrink-0" />
                                     <p className="font-sans text-xs text-muted">
@@ -189,7 +195,6 @@ export function ContactForm() {
                                     </p>
                                 </div>
 
-                                {/* Submit */}
                                 <Button
                                     type="submit"
                                     disabled={isSubmitting}
@@ -204,7 +209,7 @@ export function ContactForm() {
                                     ) : (
                                         <>
                                             <Send className="w-4 h-4 mr-2" />
-                                            Envoyer le message
+                                            Envoyer ma demande de devis
                                         </>
                                     )}
                                 </Button>

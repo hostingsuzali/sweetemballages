@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { sendInvoiceToClient } from "@/lib/adminNotifications";
+import { sendQuoteToClient } from "@/lib/adminNotifications";
 import { computeInvoiceTotals, INVOICE_VAT_RATE } from "@/lib/invoice";
 import { requireAdminSession } from "@/lib/auth";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-interface InvoicePayload {
+interface DevisPayload {
   id: string;
-  invoiceNumber: string;
+  devisNumber: string;
   companyName: string;
   email: string;
-  billingAddress: string;
+  billingAddress?: string | null;
   issueDate: string;
-  dueDate: string;
+  validUntil: string;
   lineItems: { description: string; quantity: number; unitPrice: number }[];
   notes?: string | null;
 }
@@ -26,27 +26,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
     }
 
-    const payload = (await request.json()) as InvoicePayload;
+    const payload = (await request.json()) as DevisPayload;
     if (
       !payload?.id ||
-      !payload.invoiceNumber ||
+      !payload.devisNumber ||
       !payload.companyName ||
       !payload.email ||
-      !payload.billingAddress ||
       !payload.issueDate ||
-      !payload.dueDate ||
+      !payload.validUntil ||
       !Array.isArray(payload.lineItems) ||
       payload.lineItems.length === 0
     ) {
-      return NextResponse.json({ error: "Données de facture invalides" }, { status: 400 });
+      return NextResponse.json({ error: "Données de devis invalides" }, { status: 400 });
     }
 
     const { subtotal, vatAmount, total } = computeInvoiceTotals(payload.lineItems);
-    await sendInvoiceToClient(payload);
+    await sendQuoteToClient(payload);
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     const { error } = await supabase
-      .from("factures")
+      .from("devis")
       .update({
         status: "sent",
         sent_at: new Date().toISOString(),

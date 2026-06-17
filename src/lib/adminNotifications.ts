@@ -5,6 +5,7 @@ import {
   type InvoiceLineItem,
   computeInvoiceTotals,
 } from "@/lib/invoice";
+import { buildDocumentPdf } from "@/lib/pdf/documentPdf";
 
 const smtpHost = process.env.SMTP_HOST;
 const smtpPort = Number(process.env.SMTP_PORT || 587);
@@ -74,14 +75,20 @@ export async function sendAdminQuoteNotification(input: {
   companyName: string;
   email: string;
   phone: string | null;
-  message: string;
+  message?: string | null;
+  items?: { name: string; quantity: number }[];
 }) {
   if (!canSendEmails()) return;
 
   const transporter = getTransporter();
   if (!transporter || !adminEmail) return;
 
-  const { companyName, email, phone, message } = input;
+  const { companyName, email, phone, message, items } = input;
+
+  const itemsLines =
+    items && items.length > 0
+      ? ["Produits demandes:", ...items.map((item) => `- ${item.name} x ${item.quantity}`)]
+      : [];
 
   await transporter.sendMail({
     from: fromEmail,
@@ -95,88 +102,10 @@ export async function sendAdminQuoteNotification(input: {
       `Email: ${email}`,
       `Telephone: ${phone ?? "-"}`,
       "",
-      "Details de la demande:",
-      message,
+      ...itemsLines,
+      ...(message ? ["", "Notes complementaires:", message] : []),
     ].join("\n"),
   });
-}
-
-async function buildInvoicePdf(input: {
-  invoiceNumber: string;
-  companyName: string;
-  email: string;
-  billingAddress: string;
-  issueDate: string;
-  dueDate: string;
-  lineItems: InvoiceLineItem[];
-  notes?: string | null;
-}) {
-  const { subtotal, vatAmount, total } = computeInvoiceTotals(input.lineItems);
-  const lines = [
-    "FACTURE",
-    SWEET_EMBALLAGES_COMPANY.legalName,
-    SWEET_EMBALLAGES_COMPANY.addressLine1,
-    SWEET_EMBALLAGES_COMPANY.addressLine2,
-    `IDE/UID TVA: ${SWEET_EMBALLAGES_COMPANY.vatNumber}`,
-    "",
-    `Numero: ${input.invoiceNumber}`,
-    `Date facture: ${input.issueDate}`,
-    `Echeance: ${input.dueDate}`,
-    "",
-    `Client: ${input.companyName}`,
-    `Email: ${input.email}`,
-    "Adresse de facturation:",
-    ...input.billingAddress.split("\n"),
-    "",
-    "Lignes:",
-    ...input.lineItems.map((item) => {
-      const lineTotal = item.quantity * item.unitPrice;
-      return `- ${item.description} | Qt: ${item.quantity} | Prix: CHF ${item.unitPrice.toFixed(2)} | Total: CHF ${lineTotal.toFixed(2)}`;
-    }),
-    "",
-    `Sous-total: CHF ${subtotal.toFixed(2)}`,
-    `TVA (${(INVOICE_VAT_RATE * 100).toFixed(1).replace(".", ",")} %): CHF ${vatAmount.toFixed(2)}`,
-    `Total TTC: CHF ${total.toFixed(2)}`,
-  ];
-
-  if (input.notes) {
-    lines.push("", "Notes:", ...input.notes.split("\n"));
-  }
-
-  const escapePdfText = (value: string) =>
-    value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-
-  const content = lines
-    .map((line, index) => {
-      const y = 800 - index * 16;
-      return `BT /F1 11 Tf 50 ${y} Td (${escapePdfText(line)}) Tj ET`;
-    })
-    .join("\n");
-
-  const stream = `<< /Length ${content.length} >>\nstream\n${content}\nendstream`;
-  const objects = [
-    "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
-    "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj",
-    "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj",
-    "4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj",
-    `5 0 obj ${stream} endobj`,
-  ];
-
-  let body = "%PDF-1.4\n";
-  const offsets = [0];
-  objects.forEach((obj) => {
-    offsets.push(body.length);
-    body += `${obj}\n`;
-  });
-
-  const xrefStart = body.length;
-  body += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  for (let i = 1; i < offsets.length; i += 1) {
-    body += `${offsets[i].toString().padStart(10, "0")} 00000 n \n`;
-  }
-  body += `trailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
-
-  return Buffer.from(body, "utf-8");
 }
 
 export async function sendInvoiceToClient(input: {
@@ -194,7 +123,18 @@ export async function sendInvoiceToClient(input: {
   const transporter = getTransporter();
   if (!transporter) return;
 
-  const pdfBytes = await buildInvoicePdf(input);
+  const pdfBytes = await buildDocumentPdf({
+    kind: "FACTURE",
+    number: input.invoiceNumber,
+    companyName: input.companyName,
+    email: input.email,
+    billingAddress: input.billingAddress,
+    issueDate: input.issueDate,
+    secondaryDateLabel: "Échéance",
+    secondaryDate: input.dueDate,
+    lineItems: input.lineItems,
+    notes: input.notes,
+  });
   const { subtotal, vatAmount, total } = computeInvoiceTotals(input.lineItems);
 
   await transporter.sendMail({
@@ -215,6 +155,60 @@ export async function sendInvoiceToClient(input: {
     attachments: [
       {
         filename: `facture-${input.invoiceNumber}.pdf`,
+        content: pdfBytes,
+        contentType: "application/pdf",
+      },
+    ],
+  });
+}
+
+export async function sendQuoteToClient(input: {
+  devisNumber: string;
+  companyName: string;
+  email: string;
+  billingAddress?: string | null;
+  issueDate: string;
+  validUntil: string;
+  lineItems: InvoiceLineItem[];
+  notes?: string | null;
+}) {
+  if (!canSendEmails()) return;
+
+  const transporter = getTransporter();
+  if (!transporter) return;
+
+  const pdfBytes = await buildDocumentPdf({
+    kind: "DEVIS",
+    number: input.devisNumber,
+    companyName: input.companyName,
+    email: input.email,
+    billingAddress: input.billingAddress,
+    issueDate: input.issueDate,
+    secondaryDateLabel: "Validité",
+    secondaryDate: input.validUntil,
+    lineItems: input.lineItems,
+    notes: input.notes,
+  });
+  const { subtotal, vatAmount, total } = computeInvoiceTotals(input.lineItems);
+
+  await transporter.sendMail({
+    from: fromEmail,
+    to: input.email,
+    subject: `Devis ${input.devisNumber} - ${SWEET_EMBALLAGES_COMPANY.legalName}`,
+    text: [
+      `Bonjour ${input.companyName},`,
+      "",
+      `Veuillez trouver en piece jointe votre devis ${input.devisNumber}.`,
+      `Sous-total: CHF ${subtotal.toFixed(2)}`,
+      `TVA (${(INVOICE_VAT_RATE * 100).toFixed(1).replace(".", ",")} %): CHF ${vatAmount.toFixed(2)}`,
+      `Total TTC: CHF ${total.toFixed(2)}`,
+      "",
+      "Cordialement,",
+      SWEET_EMBALLAGES_COMPANY.legalName,
+    ].join("\n"),
+    attachments: [
+      {
+        filename: `devis-${input.devisNumber}.pdf`,
         content: pdfBytes,
         contentType: "application/pdf",
       },

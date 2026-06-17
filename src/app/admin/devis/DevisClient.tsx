@@ -1,20 +1,35 @@
 "use client"
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { FileText, Mail, Phone, Building2, Clock, CheckCheck, Trash2, Eye, RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
+import {
+    FileText, Mail, Phone, Building2, Clock, CheckCheck, Trash2, Eye, RefreshCw,
+    Package, FilePlus, Send, ArrowRightCircle, Loader2,
+} from 'lucide-react'
+import { DevisQuoteBuilder, type DevisRow } from './DevisQuoteBuilder'
+import type { InvoiceLineItem } from '@/lib/invoice'
 
-interface Devis {
+interface RequestedItem {
+    productId: string
+    name: string
+    quantity: number
+    unitPriceSnapshot: number
+}
+
+interface DemandeDevisRow {
     id: string
     company_name: string
     email: string
     phone: string | null
-    message: string
+    message: string | null
+    items: RequestedItem[] | null
     is_read: boolean
     created_at: string
 }
 
 interface DevisClientProps {
-    devis: Devis[]
+    devis: DemandeDevisRow[]
+    devisQuotes: DevisRow[]
     error?: string
 }
 
@@ -28,11 +43,32 @@ function formatDate(dateStr: string) {
     }).format(new Date(dateStr))
 }
 
-export function DevisClient({ devis: initial, error }: DevisClientProps) {
-    const [devis, setDevis] = useState<Devis[]>(initial)
-    const [selected, setSelected] = useState<Devis | null>(null)
+const STATUS_LABEL: Record<string, string> = {
+    draft: 'Brouillon',
+    sent: 'Envoyé',
+    accepted: 'Accepté',
+    declined: 'Refusé',
+    converted: 'Converti en facture',
+}
+
+const STATUS_STYLE: Record<string, string> = {
+    draft: 'bg-gray-100 text-gray-700 border-gray-200',
+    sent: 'bg-blue-100 text-blue-700 border-blue-200',
+    accepted: 'bg-green-100 text-green-700 border-green-200',
+    declined: 'bg-red-100 text-red-700 border-red-200',
+    converted: 'bg-kraft/10 text-kraft border-kraft/30',
+}
+
+export function DevisClient({ devis: initial, devisQuotes: initialQuotes, error }: DevisClientProps) {
+    const [devis, setDevis] = useState<DemandeDevisRow[]>(initial)
+    const [devisQuotes, setDevisQuotes] = useState<DevisRow[]>(initialQuotes)
+    const [selected, setSelected] = useState<DemandeDevisRow | null>(null)
     const [loading, setLoading] = useState(false)
     const [hasNewItem, setHasNewItem] = useState(false)
+    const [builderOpen, setBuilderOpen] = useState(false)
+    const [editingQuote, setEditingQuote] = useState<DevisRow | null>(null)
+    const [sendingId, setSendingId] = useState<string | null>(null)
+    const [convertingId, setConvertingId] = useState<string | null>(null)
 
     const unreadCount = devis.filter((d) => !d.is_read).length
 
@@ -54,18 +90,19 @@ export function DevisClient({ devis: initial, error }: DevisClientProps) {
         if (selected?.id === id) setSelected(null)
     }
 
-    const handleOpen = async (item: Devis) => {
+    const handleOpen = async (item: DemandeDevisRow) => {
         setSelected(item)
         if (!item.is_read) await markAsRead(item.id)
     }
 
     const refresh = async () => {
         setLoading(true)
-        const { data } = await supabase
-            .from('demandes_devis')
-            .select('*')
-            .order('created_at', { ascending: false })
+        const [{ data }, { data: quotes }] = await Promise.all([
+            supabase.from('demandes_devis').select('*').order('created_at', { ascending: false }),
+            supabase.from('devis').select('*').order('created_at', { ascending: false }),
+        ])
         if (data) setDevis(data)
+        if (quotes) setDevisQuotes(quotes)
         setLoading(false)
     }
 
@@ -78,7 +115,7 @@ export function DevisClient({ devis: initial, error }: DevisClientProps) {
                 'postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'demandes_devis' },
                 (payload) => {
-                    const newDevis = payload.new as Devis
+                    const newDevis = payload.new as DemandeDevisRow
                     setDevis((prev) => {
                         const withoutDuplicate = prev.filter((d) => d.id !== newDevis.id)
                         return [newDevis, ...withoutDuplicate]
@@ -90,7 +127,7 @@ export function DevisClient({ devis: initial, error }: DevisClientProps) {
                 'postgres_changes',
                 { event: 'UPDATE', schema: 'public', table: 'demandes_devis' },
                 (payload) => {
-                    const updated = payload.new as Devis
+                    const updated = payload.new as DemandeDevisRow
                     setDevis((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))
                     setSelected((prev) => (prev?.id === updated.id ? updated : prev))
                 }
@@ -110,6 +147,88 @@ export function DevisClient({ devis: initial, error }: DevisClientProps) {
             void supabase.removeChannel(channel)
         }
     }, [])
+
+    const linkedQuote = (demandeDevisId: string) =>
+        devisQuotes.find((q) => q.demande_devis_id === demandeDevisId) ?? null
+
+    const handleQuoteSaved = (quote: DevisRow) => {
+        setDevisQuotes((prev) => {
+            const without = prev.filter((q) => q.id !== quote.id)
+            return [quote, ...without]
+        })
+        setBuilderOpen(false)
+        setEditingQuote(null)
+        toast.success(editingQuote ? 'Devis mis à jour' : 'Devis créé', {
+            description: `${quote.devis_number} — CHF ${Number(quote.total).toFixed(2)}`,
+        })
+    }
+
+    const handleSendQuote = async (quote: DevisRow) => {
+        setSendingId(quote.id)
+        try {
+            const res = await fetch('/api/devis-quotes/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: quote.id,
+                    devisNumber: quote.devis_number,
+                    companyName: quote.company_name,
+                    email: quote.email,
+                    billingAddress: quote.billing_address,
+                    issueDate: quote.issue_date,
+                    validUntil: quote.valid_until,
+                    lineItems: quote.line_items,
+                    notes: quote.notes,
+                }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || "Échec de l'envoi")
+            toast.success('Devis envoyé par email')
+            await refresh()
+        } catch (err) {
+            toast.error("Échec de l'envoi du devis", { description: (err as Error).message })
+        } finally {
+            setSendingId(null)
+        }
+    }
+
+    const handleConvert = async (quote: DevisRow) => {
+        if (!quote.billing_address || !quote.billing_address.trim()) {
+            toast.error('Adresse de facturation requise', {
+                description: 'Modifiez le devis pour ajouter une adresse avant de le convertir.',
+            })
+            return
+        }
+        setConvertingId(quote.id)
+        try {
+            const res = await fetch('/api/devis-quotes/convert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ devisId: quote.id }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Échec de la conversion')
+            toast.success('Devis converti en facture', {
+                description: `Facture ${data.invoiceNumber} créée en brouillon — rendez-vous dans Factures pour l'envoyer.`,
+            })
+            await refresh()
+        } catch (err) {
+            toast.error('Échec de la conversion', { description: (err as Error).message })
+        } finally {
+            setConvertingId(null)
+        }
+    }
+
+    const openBuilderForRequest = (item: DemandeDevisRow) => {
+        setEditingQuote(null)
+        setBuilderOpen(true)
+        setSelected(item)
+    }
+
+    const openBuilderForQuote = (quote: DevisRow) => {
+        setEditingQuote(quote)
+        setBuilderOpen(true)
+    }
 
     return (
         <div className="space-y-6">
@@ -187,7 +306,11 @@ export function DevisClient({ devis: initial, error }: DevisClientProps) {
                                             )}
                                         </div>
                                         <div className="text-xs text-muted font-sans truncate mt-0.5">{item.email}</div>
-                                        <div className="text-xs text-gray-400 font-sans mt-1 line-clamp-1">{item.message}</div>
+                                        <div className="text-xs text-gray-400 font-sans mt-1 line-clamp-1">
+                                            {item.items?.length
+                                                ? `${item.items.length} produit${item.items.length > 1 ? 's' : ''} demandé${item.items.length > 1 ? 's' : ''}`
+                                                : (item.message ?? 'Ancienne demande sans produits sélectionnés')}
+                                        </div>
                                         <div className="flex items-center gap-1 mt-1.5 text-[11px] text-gray-400">
                                             <Clock className="w-3 h-3" />
                                             {formatDate(item.created_at)}
@@ -273,18 +396,100 @@ export function DevisClient({ devis: initial, error }: DevisClientProps) {
                                 </div>
                             </div>
 
-                            {/* Message Body */}
+                            {/* Requested products */}
                             <div>
-                                <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Détails de la demande</h3>
-                                <div className="bg-gray-50 rounded-xl border border-border p-4 font-sans text-charcoal text-sm leading-relaxed whitespace-pre-wrap">
-                                    {selected.message}
+                                <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <Package className="w-3.5 h-3.5" /> Produits demandés
+                                </h3>
+                                {selected.items?.length ? (
+                                    <div className="bg-gray-50 rounded-xl border border-border divide-y divide-border">
+                                        {selected.items.map((item, i) => (
+                                            <div key={i} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                                                <span className="text-charcoal font-medium">{item.name}</span>
+                                                <span className="text-muted font-sans">
+                                                    × {item.quantity} — CHF {(item.unitPriceSnapshot * item.quantity).toFixed(2)}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="bg-gray-50 rounded-xl border border-border p-4 font-sans text-muted text-sm">
+                                        Ancienne demande sans produits sélectionnés.
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Notes / message */}
+                            {selected.message && (
+                                <div>
+                                    <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Notes complémentaires</h3>
+                                    <div className="bg-gray-50 rounded-xl border border-border p-4 font-sans text-charcoal text-sm leading-relaxed whitespace-pre-wrap">
+                                        {selected.message}
+                                    </div>
                                 </div>
+                            )}
+
+                            {/* Linked Devis / actions */}
+                            <div>
+                                <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Devis chiffré</h3>
+                                {(() => {
+                                    const quote = linkedQuote(selected.id)
+                                    if (!quote) {
+                                        return (
+                                            <button
+                                                onClick={() => openBuilderForRequest(selected)}
+                                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-kraft text-white hover:bg-[#b09268] font-medium text-sm transition-colors"
+                                            >
+                                                <FilePlus className="w-4 h-4" /> Créer un devis
+                                            </button>
+                                        )
+                                    }
+                                    return (
+                                        <div className="bg-gray-50 rounded-xl border border-border p-4 space-y-3">
+                                            <div className="flex items-center justify-between flex-wrap gap-2">
+                                                <div>
+                                                    <span className="font-heading font-bold text-charcoal">{quote.devis_number}</span>
+                                                    <span className="ml-2 text-sm text-muted">CHF {Number(quote.total).toFixed(2)}</span>
+                                                </div>
+                                                <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${STATUS_STYLE[quote.status] ?? STATUS_STYLE.draft}`}>
+                                                    {STATUS_LABEL[quote.status] ?? quote.status}
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                <button
+                                                    onClick={() => openBuilderForQuote(quote)}
+                                                    className="px-3 py-1.5 rounded-lg border border-border bg-white hover:bg-gray-100 text-sm font-medium"
+                                                >
+                                                    Modifier
+                                                </button>
+                                                <button
+                                                    disabled={sendingId === quote.id}
+                                                    onClick={() => void handleSendQuote(quote)}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-white hover:bg-gray-100 text-sm font-medium disabled:opacity-50"
+                                                >
+                                                    {sendingId === quote.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                                                    Envoyer PDF par mail
+                                                </button>
+                                                {quote.status !== 'converted' && (
+                                                    <button
+                                                        disabled={convertingId === quote.id}
+                                                        onClick={() => void handleConvert(quote)}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-charcoal text-white hover:bg-charcoal/90 text-sm font-medium disabled:opacity-50"
+                                                    >
+                                                        {convertingId === quote.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRightCircle className="w-3.5 h-3.5" />}
+                                                        Convertir en facture
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })()}
                             </div>
 
                             {/* Quick Reply */}
                             <a
                                 href={`mailto:${selected.email}?subject=Re: Demande de devis - Sweet Emballages`}
-                                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-kraft hover:bg-[#b09268] text-white font-medium transition-colors"
+                                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-border hover:bg-gray-50 text-charcoal font-medium transition-colors"
                             >
                                 <Mail className="w-4 h-4" />
                                 Répondre par email
@@ -298,6 +503,29 @@ export function DevisClient({ devis: initial, error }: DevisClientProps) {
                     )}
                 </div>
             </div>
+
+            {builderOpen && (
+                <DevisQuoteBuilder
+                    demandeDevisId={editingQuote ? undefined : selected?.id}
+                    initial={editingQuote}
+                    defaultCompanyName={selected?.company_name}
+                    defaultEmail={selected?.email}
+                    defaultLineItems={
+                        !editingQuote && selected?.items?.length
+                            ? selected.items.map<InvoiceLineItem>((item) => ({
+                                  description: item.name,
+                                  quantity: item.quantity,
+                                  unitPrice: item.unitPriceSnapshot,
+                              }))
+                            : undefined
+                    }
+                    onSaved={handleQuoteSaved}
+                    onClose={() => {
+                        setBuilderOpen(false)
+                        setEditingQuote(null)
+                    }}
+                />
+            )}
         </div>
     )
 }

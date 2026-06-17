@@ -3,7 +3,7 @@ import { AdminAuthProvider } from '@/components/admin/AdminAuthProvider'
 import { LogOut, Package2, Tags, Workflow, MessageSquare, FileText, Phone, Receipt } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 
@@ -46,7 +46,7 @@ const NavLink = ({
     </Link>
 )
 
-const Sidebar = ({ counts }: { counts: NavCounts }) => {
+const Sidebar = ({ counts, onLogout }: { counts: NavCounts; onLogout: () => void }) => {
     const pathname = usePathname()
 
     return (
@@ -90,7 +90,6 @@ const Sidebar = ({ counts }: { counts: NavCounts }) => {
                     active={pathname?.includes('/admin/contact') ?? false}
                 />
 
-                {/* Divider */}
                 <div className="pt-3 pb-1">
                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4">
                         Formulaires
@@ -121,7 +120,7 @@ const Sidebar = ({ counts }: { counts: NavCounts }) => {
 
             <div className="p-4 border-t border-border">
                 <button
-                    onClick={() => supabase.auth.signOut()}
+                    onClick={onLogout}
                     className="flex items-center space-x-3 px-4 py-3 w-full text-left rounded-lg text-muted hover:bg-gray-50 transition-colors"
                 >
                     <LogOut className="w-5 h-5" />
@@ -134,6 +133,7 @@ const Sidebar = ({ counts }: { counts: NavCounts }) => {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
+    const router = useRouter()
     const isLoginPage = pathname?.includes('/admin/login')
     const [counts, setCounts] = useState<NavCounts>({ messages: 0, devis: 0 })
     const [toasts, setToasts] = useState<AdminToast[]>([])
@@ -146,49 +146,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }, 5000)
     }
 
+    const handleLogout = async () => {
+        await fetch('/api/auth/logout', { method: 'POST' })
+        router.push('/admin/login')
+    }
+
     useEffect(() => {
+        if (isLoginPage) return
+
         const fetchCounts = async () => {
             const [messagesRes, devisRes] = await Promise.all([
                 supabase.from('contact_messages').select('id', { count: 'exact' }).eq('is_read', false),
                 supabase.from('demandes_devis').select('id', { count: 'exact' }).eq('is_read', false),
             ])
-            setCounts({
+            const newCounts = {
                 messages: messagesRes.count ?? 0,
                 devis: devisRes.count ?? 0,
+            }
+            setCounts((prev) => {
+                if (newCounts.messages > prev.messages) pushToast('Nouveau message reçu')
+                if (newCounts.devis > prev.devis) pushToast('Nouvelle demande de devis reçue')
+                return newCounts
             })
         }
 
-        if (!isLoginPage) {
-            void fetchCounts()
-
-            const channel = supabase
-                .channel('admin-nav-counts-live')
-                .on(
-                    'postgres_changes',
-                    { event: '*', schema: 'public', table: 'contact_messages' },
-                    (payload) => {
-                        void fetchCounts()
-                        if (payload.eventType === 'INSERT') {
-                            pushToast('Nouveau message reçu')
-                        }
-                    }
-                )
-                .on(
-                    'postgres_changes',
-                    { event: '*', schema: 'public', table: 'demandes_devis' },
-                    (payload) => {
-                        void fetchCounts()
-                        if (payload.eventType === 'INSERT') {
-                            pushToast('Nouvelle demande de devis reçue')
-                        }
-                    }
-                )
-                .subscribe()
-
-            return () => {
-                void supabase.removeChannel(channel)
-            }
-        }
+        void fetchCounts()
+        const interval = setInterval(() => void fetchCounts(), 30_000)
+        return () => clearInterval(interval)
     }, [isLoginPage])
 
     return (
@@ -197,10 +181,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 children
             ) : (
                 <div className="min-h-screen bg-background flex">
-                    <Sidebar counts={counts} />
+                    <Sidebar counts={counts} onLogout={handleLogout} />
 
                     <main className="flex-1 overflow-auto">
-                        {/* Mobile Header */}
                         <div className="md:hidden bg-white border-b border-border p-4 flex justify-between items-center">
                             <div className="flex items-center gap-2">
                                 <Image
@@ -212,7 +195,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 />
                                 <span className="font-heading text-lg font-bold">Admin</span>
                             </div>
-                            <button onClick={() => supabase.auth.signOut()}><LogOut className="w-5 h-5" /></button>
+                            <button onClick={handleLogout}><LogOut className="w-5 h-5" /></button>
                         </div>
                         <div className="p-8">
                             {children}

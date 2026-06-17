@@ -1,6 +1,5 @@
 "use client"
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Lock, Mail, Loader2 } from 'lucide-react'
@@ -18,17 +17,19 @@ export default function LoginPage() {
         setError(null)
 
         try {
-            const { error: signInError } = await supabase.auth.signInWithPassword({
-                email,
-                password
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
             })
-
-            if (signInError) throw signInError
-
+            const data = await res.json()
+            if (!res.ok) {
+                setError(data.error || 'Identifiants incorrects.')
+                return
+            }
             router.push('/admin')
-        } catch (err) {
-            const error = err as Error
-            setError(error.message || 'Error occurred during sign in')
+        } catch {
+            setError('Erreur de connexion.')
         } finally {
             setLoading(false)
         }

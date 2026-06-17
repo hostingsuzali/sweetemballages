@@ -1,8 +1,6 @@
 "use client"
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true)
@@ -11,48 +9,31 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
 
     useEffect(() => {
-        let cancelled = false
-
-        const finishLoading = () => {
-            if (!cancelled) setIsLoading(false)
-        }
-
-        const applySession = (session: Session | null) => {
-            const isAuth = !!session
-            setIsAuthenticated(isAuth)
-            if (!isAuth && !pathname.includes('/admin/login')) {
-                router.push('/admin/login')
-            } else if (isAuth && pathname.includes('/admin/login')) {
-                router.push('/admin')
-            }
-        }
-
         const checkAuth = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession()
-                if (cancelled) return
-                applySession(session)
-            } catch {
-                if (!cancelled) {
+                const res = await fetch('/api/auth/me')
+                if (res.ok) {
+                    setIsAuthenticated(true)
+                    if (pathname.includes('/admin/login')) {
+                        router.push('/admin')
+                    }
+                } else {
                     setIsAuthenticated(false)
-                    if (!pathname.includes('/admin/login')) router.push('/admin/login')
+                    if (!pathname.includes('/admin/login')) {
+                        router.push('/admin/login')
+                    }
+                }
+            } catch {
+                setIsAuthenticated(false)
+                if (!pathname.includes('/admin/login')) {
+                    router.push('/admin/login')
                 }
             } finally {
-                finishLoading()
+                setIsLoading(false)
             }
         }
 
         void checkAuth()
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-            applySession(session)
-            finishLoading()
-        })
-
-        return () => {
-            cancelled = true
-            subscription.unsubscribe()
-        }
     }, [pathname, router])
 
     if (isLoading) {
@@ -64,7 +45,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (!isAuthenticated && !pathname.includes('/admin/login')) {
-        return null // Will redirect
+        return null
     }
 
     return <>{children}</>

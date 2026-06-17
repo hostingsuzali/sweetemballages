@@ -1,6 +1,6 @@
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
-import { ContactForm } from '@/components/contact/ContactForm'
+import { DevisRequestForm } from '@/components/devis/DevisRequestForm'
 import { FadeIn, FadeInRight, ScaleIn, SpringScale } from '@/components/ui/Animations'
 import {
     Phone, Mail, MapPin,
@@ -235,7 +235,7 @@ export default function DevisPage() {
 
                         {/* ── Form ───────────────────── */}
                         <FadeIn delay={0.1} className="w-full max-w-xl mx-auto lg:mx-0 lg:ml-auto">
-                            <ContactForm type="devis" />
+                            <DevisRequestForm />
                         </FadeIn>
                     </div>
                 </div>
