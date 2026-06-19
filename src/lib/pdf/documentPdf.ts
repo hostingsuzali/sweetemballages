@@ -153,13 +153,12 @@ export async function buildDocumentPdf(input: PdfDocumentInput): Promise<Buffer>
       const doc = pdfMake.createPdf(docDef);
       const chunks: Buffer[] = [];
 
-      doc.getStream((stream) => {
-        stream.on("data", (chunk: Buffer) => chunks.push(chunk));
-        stream.on("end", () => resolve(Buffer.concat(chunks)));
-        stream.on("error", (err: Error) => {
-          console.error("PDF generation error:", err);
-          reject(err);
-        });
+      const stream = doc.getStream() as any;
+      stream.on("data", (chunk: Buffer) => chunks.push(chunk));
+      stream.on("end", () => resolve(Buffer.concat(chunks)));
+      stream.on("error", (err: Error) => {
+        console.error("PDF generation error:", err);
+        reject(err);
       });
     } catch (err) {
       console.error("PDF creation error:", err);
