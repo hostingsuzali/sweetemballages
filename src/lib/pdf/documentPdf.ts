@@ -47,7 +47,14 @@ export async function buildDocumentPdf(input: PdfDocumentInput): Promise<Buffer>
 
   const done = new Promise<Buffer>((resolve, reject) => {
     doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", reject);
+    doc.on("error", (err: Error) => {
+      console.error("PDF generation error:", err);
+      if (err.message.includes("Helvetica.afm") || err.message.includes("font")) {
+        reject(new Error("Erreur de génération PDF: les fichiers de police PDFKit ne sont pas disponibles. Vérifiez que pdfkit est correctement installé dans node_modules."));
+      } else {
+        reject(err);
+      }
+    });
   });
 
   const bottomLimit = doc.page.height - doc.page.margins.bottom;

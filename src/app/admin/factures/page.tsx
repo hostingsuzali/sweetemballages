@@ -37,6 +37,7 @@ export default function FacturesPage() {
   const [loading, setLoading] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [rows, setRows] = useState<FactureRow[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState({
     companyName: "",
     email: "",
@@ -132,6 +133,17 @@ export default function FacturesPage() {
     void refresh();
   }, []);
 
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      setSelectedId(hash);
+      const element = document.getElementById(`facture-${hash}`);
+      if (element) {
+        setTimeout(() => element.scrollIntoView({ behavior: "smooth", block: "nearest" }), 100);
+      }
+    }
+  }, []);
+
   return (
     <div className="space-y-6">
       <div>
@@ -192,7 +204,7 @@ export default function FacturesPage() {
             ) : rows.length === 0 ? (
               <tr><td className="p-3" colSpan={5}>Aucune facture.</td></tr>
             ) : rows.map((row) => (
-              <tr key={row.id} className="border-t border-border">
+              <tr key={row.id} id={`facture-${row.id}`} className={`border-t border-border ${selectedId === row.id ? "bg-blue-50" : ""}`}>
                 <td className="p-3">{row.invoice_number}</td>
                 <td className="p-3">{row.company_name}</td>
                 <td className="p-3">CHF {Number(row.total).toFixed(2)}</td>
