@@ -546,15 +546,13 @@ export function DevisClient({ devis: initial, devisQuotes: initialQuotes, error 
                                                                         {STATUS_LABEL[facture.status] ?? facture.status}
                                                                     </span>
                                                                 </div>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        window.open(`/api/factures/download?id=${facture.id}`, '_blank')
-                                                                    }}
+                                                                <a
+                                                                    href={`/admin/factures#${facture.id}`}
                                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-300 bg-white hover:bg-blue-50 text-blue-700 text-sm font-medium transition-colors"
                                                                 >
                                                                     <Eye className="w-3.5 h-3.5" />
-                                                                    Télécharger PDF
-                                                                </button>
+                                                                    Voir la facture
+                                                                </a>
                                                             </div>
                                                         )
                                                     })()}
