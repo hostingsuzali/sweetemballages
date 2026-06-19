@@ -1,12 +1,9 @@
 import pdfMake from "pdfmake/build/pdfmake";
-import pdfFonts from "pdfmake/build/vfs_fonts";
 import {
   SWEET_EMBALLAGES_COMPANY,
   computeInvoiceTotals,
   type InvoiceLineItem,
 } from "@/lib/invoice";
-
-(pdfMake as any).vfs = (pdfFonts as any).pdfMake.vfs;
 
 export interface PdfDocumentInput {
   kind: "DEVIS" | "FACTURE";
