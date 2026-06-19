@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "npm list pdfkit && prisma generate"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
@@ -16,7 +16,7 @@
     "motion": "^12.34.3",
     "next": "16.1.6",
     "nodemailer": "^8.0.5",
-    "pdfkit": "^0.19.1",
+    "pdfmake": "^0.3.11",
     "pg": "^8.19.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
