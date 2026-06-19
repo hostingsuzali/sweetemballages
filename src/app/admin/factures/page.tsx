@@ -8,7 +8,7 @@ import {
   SWEET_EMBALLAGES_COMPANY,
   type InvoiceLineItem,
 } from "@/lib/invoice";
-import { FileText, Mail, Plus, Trash2 } from "lucide-react";
+import { FileText, Mail, Plus, Trash2, Download } from "lucide-react";
 
 interface FactureRow {
   id: string;
@@ -129,6 +129,15 @@ export default function FacturesPage() {
     }
   };
 
+  const downloadPdf = (invoice: FactureRow) => {
+    const link = document.createElement("a");
+    link.href = `/api/factures/download?id=${invoice.id}`;
+    link.download = `facture-${invoice.invoice_number}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   useEffect(() => {
     void refresh();
   }, []);
@@ -209,7 +218,10 @@ export default function FacturesPage() {
                 <td className="p-3">{row.company_name}</td>
                 <td className="p-3">CHF {Number(row.total).toFixed(2)}</td>
                 <td className="p-3">{row.status === "sent" ? "Envoyée" : "Brouillon"}</td>
-                <td className="p-3 text-right">
+                <td className="p-3 text-right space-x-2">
+                  <button onClick={() => downloadPdf(row)} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border hover:bg-gray-50">
+                    <Download className="w-4 h-4" /> Télécharger
+                  </button>
                   <button disabled={sendingId === row.id} onClick={() => void sendInvoice(row)} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border hover:bg-gray-50 disabled:opacity-50">
                     <Mail className="w-4 h-4" /> {sendingId === row.id ? "Envoi..." : "Envoyer PDF par mail"}
                   </button>
