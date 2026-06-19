@@ -1,12 +1,12 @@
-import PdfPrinter from "pdfmake/build/pdfmake";
-import PdfFonts from "pdfmake/build/vfs_fonts";
+import pdfMake from "pdfmake/build/pdfmake";
+import pdfFonts from "pdfmake/build/vfs_fonts";
 import {
   SWEET_EMBALLAGES_COMPANY,
   computeInvoiceTotals,
   type InvoiceLineItem,
 } from "@/lib/invoice";
 
-PdfPrinter.vfs = PdfFonts.pdfMake.vfs;
+pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
 export interface PdfDocumentInput {
   kind: "DEVIS" | "FACTURE";
@@ -148,17 +148,22 @@ export async function buildDocumentPdf(input: PdfDocumentInput): Promise<Buffer>
     }),
   };
 
-  const printer = new PdfPrinter({});
-  const doc = printer.createPdfKitDocument(docDef);
-
-  const chunks: Buffer[] = [];
   return new Promise((resolve, reject) => {
-    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", (err: Error) => {
-      console.error("PDF generation error:", err);
+    try {
+      const doc = pdfMake.createPdf(docDef);
+      const chunks: Buffer[] = [];
+
+      doc.getStream((stream) => {
+        stream.on("data", (chunk: Buffer) => chunks.push(chunk));
+        stream.on("end", () => resolve(Buffer.concat(chunks)));
+        stream.on("error", (err: Error) => {
+          console.error("PDF generation error:", err);
+          reject(err);
+        });
+      });
+    } catch (err) {
+      console.error("PDF creation error:", err);
       reject(err);
-    });
-    doc.end();
+    }
   });
 }
