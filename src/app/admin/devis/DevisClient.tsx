@@ -27,6 +27,15 @@ interface DemandeDevisRow {
     created_at: string
 }
 
+interface FactureRow {
+    id: string
+    invoice_number: string
+    status: string
+    total: number
+    created_at: string
+    sent_at: string | null
+}
+
 interface DevisClientProps {
     devis: DemandeDevisRow[]
     devisQuotes: DevisRow[]
@@ -69,6 +78,8 @@ export function DevisClient({ devis: initial, devisQuotes: initialQuotes, error 
     const [editingQuote, setEditingQuote] = useState<DevisRow | null>(null)
     const [sendingId, setSendingId] = useState<string | null>(null)
     const [convertingId, setConvertingId] = useState<string | null>(null)
+    const [factures, setFactures] = useState<Record<string, FactureRow>>({})
+    const [loadingFacture, setLoadingFacture] = useState<string | null>(null)
 
     const unreadCount = devis.filter((d) => !d.is_read).length
 
@@ -148,8 +159,34 @@ export function DevisClient({ devis: initial, devisQuotes: initialQuotes, error 
         }
     }, [])
 
+    useEffect(() => {
+        if (!selected) return
+        const quote = linkedQuote(selected.id)
+        if (!quote?.converted_facture_id || factures[quote.converted_facture_id]) return
+        void fetchFacture(quote.id, quote.converted_facture_id)
+    }, [selected?.id, devisQuotes])
+
     const linkedQuote = (demandeDevisId: string) =>
         devisQuotes.find((q) => q.demande_devis_id === demandeDevisId) ?? null
+
+    const fetchFacture = async (devisId: string, convertedFactureId: string) => {
+        if (factures[convertedFactureId]) return
+        setLoadingFacture(devisId)
+        try {
+            const { data } = await supabase
+                .from('factures')
+                .select('id, invoice_number, status, total, created_at, sent_at')
+                .eq('id', convertedFactureId)
+                .single()
+            if (data) {
+                setFactures((prev) => ({ ...prev, [convertedFactureId]: data }))
+            }
+        } catch (err) {
+            console.error('Failed to fetch facture:', err)
+        } finally {
+            setLoadingFacture(null)
+        }
+    }
 
     const handleQuoteSaved = (quote: DevisRow) => {
         setDevisQuotes((prev) => {
@@ -445,42 +482,82 @@ export function DevisClient({ devis: initial, devisQuotes: initialQuotes, error 
                                         )
                                     }
                                     return (
-                                        <div className="bg-gray-50 rounded-xl border border-border p-4 space-y-3">
-                                            <div className="flex items-center justify-between flex-wrap gap-2">
-                                                <div>
-                                                    <span className="font-heading font-bold text-charcoal">{quote.devis_number}</span>
-                                                    <span className="ml-2 text-sm text-muted">CHF {Number(quote.total).toFixed(2)}</span>
+                                        <div className="space-y-3">
+                                            <div className="bg-gray-50 rounded-xl border border-border p-4 space-y-3">
+                                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                                    <div>
+                                                        <span className="font-heading font-bold text-charcoal">{quote.devis_number}</span>
+                                                        <span className="ml-2 text-sm text-muted">CHF {Number(quote.total).toFixed(2)}</span>
+                                                    </div>
+                                                    <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${STATUS_STYLE[quote.status] ?? STATUS_STYLE.draft}`}>
+                                                        {STATUS_LABEL[quote.status] ?? quote.status}
+                                                    </span>
                                                 </div>
-                                                <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${STATUS_STYLE[quote.status] ?? STATUS_STYLE.draft}`}>
-                                                    {STATUS_LABEL[quote.status] ?? quote.status}
-                                                </span>
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                <button
-                                                    onClick={() => openBuilderForQuote(quote)}
-                                                    className="px-3 py-1.5 rounded-lg border border-border bg-white hover:bg-gray-100 text-sm font-medium"
-                                                >
-                                                    Modifier
-                                                </button>
-                                                <button
-                                                    disabled={sendingId === quote.id}
-                                                    onClick={() => void handleSendQuote(quote)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-white hover:bg-gray-100 text-sm font-medium disabled:opacity-50"
-                                                >
-                                                    {sendingId === quote.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                                                    Envoyer PDF par mail
-                                                </button>
-                                                {quote.status !== 'converted' && (
+                                                <div className="flex flex-wrap gap-2">
                                                     <button
-                                                        disabled={convertingId === quote.id}
-                                                        onClick={() => void handleConvert(quote)}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-charcoal text-white hover:bg-charcoal/90 text-sm font-medium disabled:opacity-50"
+                                                        onClick={() => openBuilderForQuote(quote)}
+                                                        className="px-3 py-1.5 rounded-lg border border-border bg-white hover:bg-gray-100 text-sm font-medium"
                                                     >
-                                                        {convertingId === quote.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRightCircle className="w-3.5 h-3.5" />}
-                                                        Convertir en facture
+                                                        Modifier
                                                     </button>
-                                                )}
+                                                    <button
+                                                        disabled={sendingId === quote.id}
+                                                        onClick={() => void handleSendQuote(quote)}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-white hover:bg-gray-100 text-sm font-medium disabled:opacity-50"
+                                                    >
+                                                        {sendingId === quote.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                                                        Envoyer PDF par mail
+                                                    </button>
+                                                    {quote.status !== 'converted' && (
+                                                        <button
+                                                            disabled={convertingId === quote.id}
+                                                            onClick={() => void handleConvert(quote)}
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-charcoal text-white hover:bg-charcoal/90 text-sm font-medium disabled:opacity-50"
+                                                        >
+                                                            {convertingId === quote.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRightCircle className="w-3.5 h-3.5" />}
+                                                            Convertir en facture
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
+                                            {quote.converted_facture_id && (
+                                                <div>
+                                                    <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Facture générée</h3>
+                                                    {(() => {
+                                                        const facture = factures[quote.converted_facture_id!]
+                                                        if (!facture) {
+                                                            return (
+                                                                <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                                                                        <span className="text-sm text-blue-700">Chargement de la facture...</span>
+                                                                    </div>
+                                                                </div>
+                                                            )
+                                                        }
+                                                        return (
+                                                            <div className="bg-blue-50 rounded-xl border border-blue-200 p-4 space-y-3">
+                                                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                                                    <div>
+                                                                        <span className="font-heading font-bold text-blue-900">{facture.invoice_number}</span>
+                                                                        <span className="ml-2 text-sm text-blue-700">CHF {Number(facture.total).toFixed(2)}</span>
+                                                                    </div>
+                                                                    <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${STATUS_STYLE[facture.status] ?? 'bg-gray-100 text-gray-700 border-gray-200'}`}>
+                                                                        {STATUS_LABEL[facture.status] ?? facture.status}
+                                                                    </span>
+                                                                </div>
+                                                                <a
+                                                                    href={`/admin/factures`}
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-300 bg-white hover:bg-blue-50 text-blue-700 text-sm font-medium transition-colors"
+                                                                >
+                                                                    <Eye className="w-3.5 h-3.5" />
+                                                                    Voir la facture
+                                                                </a>
+                                                            </div>
+                                                        )
+                                                    })()}
+                                                </div>
+                                            )}
                                         </div>
                                     )
                                 })()}
