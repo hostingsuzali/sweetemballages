@@ -145,18 +145,32 @@ export async function buildDocumentPdf(input: PdfDocumentInput): Promise<Buffer>
     }),
   };
 
-  return new Promise((resolve, reject) => {
+  return new Promise<Buffer>((resolve, reject) => {
     try {
-      const doc = pdfMake.createPdf(docDef);
+      const doc = (pdfMake as any).createPdf(docDef);
       const chunks: Buffer[] = [];
 
-      const stream = doc.getStream() as any;
-      stream.on("data", (chunk: Buffer) => chunks.push(chunk));
-      stream.on("end", () => resolve(Buffer.concat(chunks)));
-      stream.on("error", (err: Error) => {
-        console.error("PDF generation error:", err);
-        reject(err);
+      doc.getStream((stream: any) => {
+        stream.on("data", (chunk: Buffer) => {
+          chunks.push(chunk);
+        });
+        stream.on("end", () => {
+          const buffer = Buffer.concat(chunks);
+          console.log(`PDF generated: ${buffer.length} bytes`);
+          resolve(buffer);
+        });
+        stream.on("error", (err: Error) => {
+          console.error("PDF stream error:", err);
+          reject(err);
+        });
       });
+
+      // Timeout after 30 seconds
+      setTimeout(() => {
+        if (chunks.length === 0) {
+          reject(new Error("PDF generation timeout"));
+        }
+      }, 30000);
     } catch (err) {
       console.error("PDF creation error:", err);
       reject(err);

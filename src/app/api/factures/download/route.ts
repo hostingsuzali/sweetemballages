@@ -45,10 +45,16 @@ export async function GET(request: Request) {
       notes: facture.notes,
     });
 
-    return new Response(pdfBuffer as unknown as BodyInit, {
+    if (!pdfBuffer || pdfBuffer.length === 0) {
+      console.error("PDF buffer is empty");
+      return NextResponse.json({ error: "Erreur de génération PDF" }, { status: 500 });
+    }
+
+    return new NextResponse(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${facture.invoice_number}.pdf"`,
+        "Content-Disposition": `attachment; filename="facture-${facture.invoice_number}.pdf"`,
+        "Cache-Control": "no-cache, no-store, must-revalidate",
       },
     });
   } catch (error) {
