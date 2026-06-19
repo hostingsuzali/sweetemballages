@@ -6,7 +6,7 @@ import {
   type InvoiceLineItem,
 } from "@/lib/invoice";
 
-(pdfMake as any).vfs = pdfFonts.pdfMake.vfs;
+(pdfMake as any).vfs = (pdfFonts as any).pdfMake.vfs;
 
 export interface PdfDocumentInput {
   kind: "DEVIS" | "FACTURE";
