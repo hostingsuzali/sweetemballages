@@ -1,4 +1,4 @@
-import pdfMake from "pdfmake/build/pdfmake";
+import PDFDocument from "pdfkit";
 import {
   SWEET_EMBALLAGES_COMPANY,
   computeInvoiceTotals,
@@ -18,6 +18,13 @@ export interface PdfDocumentInput {
   notes?: string | null;
 }
 
+const PAGE_MARGIN = 50;
+const COL_DESCRIPTION_X = PAGE_MARGIN;
+const COL_QTY_X = 340;
+const COL_UNIT_X = 410;
+const COL_TOTAL_X = 490;
+const ROW_HEIGHT = 20;
+
 function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -33,147 +40,127 @@ function formatChf(value: number) {
 }
 
 export async function buildDocumentPdf(input: PdfDocumentInput): Promise<Buffer> {
-  const { subtotal, vatAmount, total } = computeInvoiceTotals(input.lineItems);
-  const vatRate = subtotal === 0 ? 0 : (vatAmount / subtotal) * 100;
+  const doc = new PDFDocument({ size: "A4", margin: PAGE_MARGIN, bufferPages: true });
+  const chunks: Buffer[] = [];
+  doc.on("data", (chunk) => chunks.push(chunk));
 
-  const tableBody = [
-    [
-      { text: "Description", bold: true, fillColor: "#f5f5f5" },
-      { text: "Qté", bold: true, fillColor: "#f5f5f5", alignment: "right" },
-      { text: "Prix unit.", bold: true, fillColor: "#f5f5f5", alignment: "right" },
-      { text: "Total", bold: true, fillColor: "#f5f5f5", alignment: "right" },
-    ],
-    ...input.lineItems.map((item) => [
-      item.description,
-      { text: String(item.quantity), alignment: "right" },
-      { text: formatChf(item.unitPrice), alignment: "right" },
-      { text: formatChf(item.quantity * item.unitPrice), alignment: "right" },
-    ]),
-  ];
+  const done = new Promise<Buffer>((resolve, reject) => {
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", (err: Error) => {
+      console.error("PDF generation error:", err);
+      reject(err);
+    });
+  });
 
-  const docDef: any = {
-    pageMargins: [50, 50, 50, 50],
-    content: [
-      {
-        columns: [
-          {
-            text: SWEET_EMBALLAGES_COMPANY.legalName,
-            fontSize: 9,
-            color: "#666",
-            width: "50%",
-          },
-          {
-            stack: [
-              { text: SWEET_EMBALLAGES_COMPANY.legalName, alignment: "right", fontSize: 9 },
-              { text: SWEET_EMBALLAGES_COMPANY.addressLine1, alignment: "right", fontSize: 9 },
-              { text: SWEET_EMBALLAGES_COMPANY.addressLine2, alignment: "right", fontSize: 9 },
-              { text: `IDE/UID TVA: ${SWEET_EMBALLAGES_COMPANY.vatNumber}`, alignment: "right", fontSize: 9 },
-            ],
-            width: "50%",
-          },
-        ],
-        marginBottom: 30,
-      },
-      {
-        text: input.kind,
-        fontSize: 24,
-        bold: true,
-        marginBottom: 10,
-      },
-      {
-        stack: [
-          { text: `Numéro: ${input.number}`, fontSize: 10 },
-          { text: `Date d'émission: ${formatDate(input.issueDate)}`, fontSize: 10 },
-          { text: `${input.secondaryDateLabel}: ${formatDate(input.secondaryDate)}`, fontSize: 10 },
-        ],
-        marginBottom: 20,
-      },
-      {
-        text: "Client",
-        fontSize: 11,
-        bold: true,
-        marginBottom: 10,
-      },
-      {
-        stack: [
-          { text: input.companyName, fontSize: 10 },
-          { text: input.email, fontSize: 10 },
-          ...(input.billingAddress
-            ? input.billingAddress.split("\n").map((line) => ({ text: line, fontSize: 10 }))
-            : []),
-        ],
-        marginBottom: 20,
-      },
-      {
-        table: {
-          headerRows: 1,
-          widths: ["*", 70, 80, 80],
-          body: tableBody,
-        },
-        marginBottom: 20,
-      },
-      {
-        alignment: "right",
-        stack: [
-          { text: `Sous-total: ${formatChf(subtotal)}`, fontSize: 10 },
-          { text: `TVA (${vatRate.toFixed(1).replace(".", ",")} %): ${formatChf(vatAmount)}`, fontSize: 10 },
-          { text: `Total TTC: ${formatChf(total)}`, fontSize: 11, bold: true },
-        ],
-        marginBottom: input.notes ? 20 : 0,
-      },
-      ...(input.notes
-        ? [
-            {
-              text: "Notes",
-              fontSize: 11,
-              bold: true,
-              marginBottom: 10,
-            },
-            {
-              text: input.notes,
-              fontSize: 10,
-            },
-          ]
-        : []),
-    ],
-    footer: (currentPage: number, pageCount: number) => ({
-      text: `Page ${currentPage} / ${pageCount}`,
-      alignment: "center",
-      fontSize: 8,
-      color: "#999",
-      margin: [50, 20, 50, 20],
-    }),
+  const bottomLimit = doc.page.height - doc.page.margins.bottom;
+
+  const drawTableHeader = () => {
+    doc.font("Helvetica-Bold").fontSize(9).fillColor("#444");
+    doc.text("Description", COL_DESCRIPTION_X, doc.y, { width: COL_QTY_X - COL_DESCRIPTION_X - 10 });
+    doc.text("Qté", COL_QTY_X, doc.y - doc.currentLineHeight(), { width: COL_UNIT_X - COL_QTY_X - 10, align: "right" });
+    doc.text("Prix unit.", COL_UNIT_X, doc.y - doc.currentLineHeight(), { width: COL_TOTAL_X - COL_UNIT_X - 10, align: "right" });
+    doc.text("Total", COL_TOTAL_X, doc.y - doc.currentLineHeight(), { width: doc.page.width - doc.page.margins.right - COL_TOTAL_X, align: "right" });
+    doc.moveDown(0.4);
+    doc
+      .moveTo(PAGE_MARGIN, doc.y)
+      .lineTo(doc.page.width - doc.page.margins.right, doc.y)
+      .strokeColor("#ccc")
+      .stroke();
+    doc.moveDown(0.4);
+    doc.font("Helvetica").fillColor("#222");
   };
 
-  return new Promise<Buffer>((resolve, reject) => {
-    try {
-      const doc = (pdfMake as any).createPdf(docDef);
-      const chunks: Buffer[] = [];
-
-      doc.getStream((stream: any) => {
-        stream.on("data", (chunk: Buffer) => {
-          chunks.push(chunk);
-        });
-        stream.on("end", () => {
-          const buffer = Buffer.concat(chunks);
-          console.log(`PDF generated: ${buffer.length} bytes`);
-          resolve(buffer);
-        });
-        stream.on("error", (err: Error) => {
-          console.error("PDF stream error:", err);
-          reject(err);
-        });
-      });
-
-      // Timeout after 30 seconds
-      setTimeout(() => {
-        if (chunks.length === 0) {
-          reject(new Error("PDF generation timeout"));
-        }
-      }, 30000);
-    } catch (err) {
-      console.error("PDF creation error:", err);
-      reject(err);
+  const ensureSpace = (needed: number) => {
+    if (doc.y + needed > bottomLimit) {
+      doc.addPage();
+      doc.y = doc.page.margins.top;
+      drawTableHeader();
     }
-  });
+  };
+
+  doc.fontSize(9).fillColor("#444");
+  doc.text(SWEET_EMBALLAGES_COMPANY.legalName, 350, PAGE_MARGIN, { align: "right" });
+  doc.text(SWEET_EMBALLAGES_COMPANY.addressLine1, { align: "right" });
+  doc.text(SWEET_EMBALLAGES_COMPANY.addressLine2, { align: "right" });
+  doc.text(`IDE/UID TVA: ${SWEET_EMBALLAGES_COMPANY.vatNumber}`, { align: "right" });
+
+  doc.y = PAGE_MARGIN + 90;
+  doc.x = PAGE_MARGIN;
+
+  doc.fillColor("#000").font("Helvetica-Bold").fontSize(22).text(input.kind, PAGE_MARGIN, doc.y);
+  doc.moveDown(0.3);
+  doc.font("Helvetica").fontSize(10).fillColor("#333");
+  doc.text(`Numéro: ${input.number}`);
+  doc.text(`Date d'émission: ${formatDate(input.issueDate)}`);
+  doc.text(`${input.secondaryDateLabel}: ${formatDate(input.secondaryDate)}`);
+
+  doc.moveDown(1);
+  doc.font("Helvetica-Bold").fontSize(11).fillColor("#000").text("Client");
+  doc.font("Helvetica").fontSize(10).fillColor("#333");
+  doc.text(input.companyName);
+  doc.text(input.email);
+  if (input.billingAddress) {
+    for (const line of input.billingAddress.split("\n")) {
+      doc.text(line);
+    }
+  }
+
+  doc.moveDown(1.2);
+  drawTableHeader();
+
+  for (const item of input.lineItems) {
+    ensureSpace(ROW_HEIGHT);
+    const lineTotal = item.quantity * item.unitPrice;
+    const rowY = doc.y;
+    doc.fontSize(9).fillColor("#222");
+    doc.text(item.description, COL_DESCRIPTION_X, rowY, { width: COL_QTY_X - COL_DESCRIPTION_X - 10 });
+    doc.text(String(item.quantity), COL_QTY_X, rowY, { width: COL_UNIT_X - COL_QTY_X - 10, align: "right" });
+    doc.text(formatChf(item.unitPrice), COL_UNIT_X, rowY, { width: COL_TOTAL_X - COL_UNIT_X - 10, align: "right" });
+    doc.text(formatChf(lineTotal), COL_TOTAL_X, rowY, {
+      width: doc.page.width - doc.page.margins.right - COL_TOTAL_X,
+      align: "right",
+    });
+    doc.y = rowY + ROW_HEIGHT;
+  }
+
+  doc.moveDown(0.5);
+  doc
+    .moveTo(PAGE_MARGIN, doc.y)
+    .lineTo(doc.page.width - doc.page.margins.right, doc.y)
+    .strokeColor("#ccc")
+    .stroke();
+  doc.moveDown(0.6);
+
+  ensureSpace(ROW_HEIGHT * 3);
+  const { subtotal, vatAmount, total } = computeInvoiceTotals(input.lineItems);
+  const vatRate = (subtotal === 0 ? 0 : vatAmount / subtotal) * 100;
+  doc.font("Helvetica").fontSize(10).fillColor("#222");
+  doc.text(`Sous-total: ${formatChf(subtotal)}`, { align: "right" });
+  doc.text(`TVA (${vatRate.toFixed(1).replace(".", ",")} %): ${formatChf(vatAmount)}`, { align: "right" });
+  doc.font("Helvetica-Bold").text(`Total TTC: ${formatChf(total)}`, { align: "right" });
+
+  if (input.notes) {
+    doc.moveDown(1);
+    ensureSpace(ROW_HEIGHT * 2);
+    doc.font("Helvetica-Bold").fontSize(10).fillColor("#000").text("Notes");
+    doc.font("Helvetica").fontSize(9).fillColor("#333");
+    for (const line of input.notes.split("\n")) {
+      doc.text(line);
+    }
+  }
+
+  const pageRange = doc.bufferedPageRange();
+  for (let i = 0; i < pageRange.count; i += 1) {
+    doc.switchToPage(i);
+    doc
+      .fontSize(8)
+      .fillColor("#999")
+      .text(`Page ${i + 1} / ${pageRange.count}`, PAGE_MARGIN, doc.page.height - 30, {
+        width: doc.page.width - PAGE_MARGIN * 2,
+        align: "center",
+      });
+  }
+
+  doc.end();
+  return done;
 }
