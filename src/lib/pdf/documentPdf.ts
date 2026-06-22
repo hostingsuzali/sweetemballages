@@ -77,18 +77,18 @@ export async function buildDocumentPdf(input: PdfDocumentInput): Promise<Buffer>
   };
 
   // Header section
-  drawText(SWEET_EMBALLAGES_COMPANY.legalName, margin, yPosition, 12, COLORS.kraft, true);
-  yPosition -= 16;
-  drawText(SWEET_EMBALLAGES_COMPANY.addressLine1, margin, yPosition, 9, COLORS.gray);
-  yPosition -= 12;
-  drawText(SWEET_EMBALLAGES_COMPANY.addressLine2, margin, yPosition, 9, COLORS.gray);
-  yPosition -= 12;
-  drawText(`IDE/UID TVA: ${SWEET_EMBALLAGES_COMPANY.vatNumber}`, margin, yPosition, 9, COLORS.gray);
-  yPosition -= 20;
+  drawText(SWEET_EMBALLAGES_COMPANY.legalName, margin, yPosition, 11, COLORS.kraft, true);
+  yPosition -= 14;
+  drawText(SWEET_EMBALLAGES_COMPANY.addressLine1, margin, yPosition, 8, COLORS.gray);
+  yPosition -= 11;
+  drawText(SWEET_EMBALLAGES_COMPANY.addressLine2, margin, yPosition, 8, COLORS.gray);
+  yPosition -= 11;
+  drawText(`IDE/UID TVA: ${SWEET_EMBALLAGES_COMPANY.vatNumber}`, margin, yPosition, 8, COLORS.gray);
+  yPosition -= 30;
 
   // Document title
-  drawText(input.kind, margin, yPosition, 28, COLORS.dark, true);
-  yPosition -= 35;
+  drawText(input.kind, margin, yPosition, 26, COLORS.dark, true);
+  yPosition -= 32;
 
   // Document details (left) and dates (right)
   const detailsX = margin;
@@ -124,18 +124,17 @@ export async function buildDocumentPdf(input: PdfDocumentInput): Promise<Buffer>
   yPosition -= 85;
 
   // Table headers with background
-  const colX = [margin, 320, 420, 490];
+  const colX = [margin + 5, 340, 420, 490];
   const colLabels = ["Description", "Qté", "Prix unit.", "Total"];
-  const colWidths = [310 - margin, 100, 70, width - 490 - margin];
 
   // Draw header background
   drawRect(margin, yPosition - 20, width - margin * 2, 20, COLORS.lightGray);
 
   // Draw header text
-  for (let i = 0; i < colLabels.length; i++) {
-    const isLast = i === colLabels.length - 1;
-    drawText(colLabels[i], colX[i] + (isLast ? colWidths[i] - 70 : 5), yPosition - 16, 9, COLORS.gray, true);
-  }
+  drawText(colLabels[0], colX[0], yPosition - 16, 9, COLORS.gray, true);
+  drawText(colLabels[1], colX[1], yPosition - 16, 9, COLORS.gray, true);
+  drawText(colLabels[2], colX[2], yPosition - 16, 9, COLORS.gray, true);
+  drawText(colLabels[3], colX[3] + 30, yPosition - 16, 9, COLORS.gray, true);
 
   yPosition -= 25;
 
@@ -180,10 +179,10 @@ export async function buildDocumentPdf(input: PdfDocumentInput): Promise<Buffer>
     }
 
     // Row content
-    drawText(item.description, colX[0] + 5, yPosition - 12, 9, COLORS.dark);
-    drawText(String(item.quantity), colX[1], yPosition - 12, 9, COLORS.dark);
-    drawText(formatChf(item.unitPrice), colX[2], yPosition - 12, 9, COLORS.dark);
-    drawText(formatChf(lineTotal), colX[3] + colWidths[3] - 80, yPosition - 12, 9, COLORS.dark, true);
+    drawText(item.description, colX[0], yPosition - 12, 9, COLORS.dark);
+    drawText(String(item.quantity), colX[1] + 15, yPosition - 12, 9, COLORS.dark);
+    drawText(formatChf(item.unitPrice), colX[2] + 5, yPosition - 12, 9, COLORS.dark);
+    drawText(formatChf(lineTotal), colX[3] + 35, yPosition - 12, 9, COLORS.dark, true);
 
     yPosition -= rowHeight;
     rowIndex++;
@@ -191,23 +190,24 @@ export async function buildDocumentPdf(input: PdfDocumentInput): Promise<Buffer>
 
   // Final separator line
   drawLine(margin, yPosition, width - margin, COLORS.border, 1);
-  yPosition -= 15;
+  yPosition -= 18;
 
   // Totals section (right aligned)
-  const totalX = width - margin - 200;
+  const totalLabelX = width - 240;
+  const totalValueX = width - margin - 50;
 
-  drawText("Sous-total", totalX, yPosition, 9, COLORS.gray);
-  drawText(formatChf(subtotal), width - margin - 50, yPosition, 9, COLORS.dark);
+  drawText("Sous-total", totalLabelX, yPosition, 9, COLORS.gray);
+  drawText(formatChf(subtotal), totalValueX, yPosition, 9, COLORS.dark);
   yPosition -= 16;
 
-  drawText(`TVA (${vatRate.toFixed(1).replace(".", ",")} %)`, totalX, yPosition, 9, COLORS.gray);
-  drawText(formatChf(vatAmount), width - margin - 50, yPosition, 9, COLORS.dark);
-  yPosition -= 20;
+  drawText(`TVA (${vatRate.toFixed(1).replace(".", ",")} %)`, totalLabelX, yPosition, 9, COLORS.gray);
+  drawText(formatChf(vatAmount), totalValueX, yPosition, 9, COLORS.dark);
+  yPosition -= 22;
 
   // Total with background box
-  drawRect(totalX - 10, yPosition - 22, 210, 22, COLORS.kraft);
-  drawText("TOTAL TTC", totalX, yPosition - 16, 9, rgb(1, 1, 1), true);
-  drawText(formatChf(total), width - margin - 50, yPosition - 16, 11, rgb(1, 1, 1), true);
+  drawRect(totalLabelX - 15, yPosition - 18, 225, 18, COLORS.kraft);
+  drawText("TOTAL TTC", totalLabelX, yPosition - 14, 9, rgb(1, 1, 1), true);
+  drawText(formatChf(total), totalValueX, yPosition - 14, 11, rgb(1, 1, 1), true);
 
   yPosition -= 40;
 

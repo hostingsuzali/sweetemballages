@@ -38,6 +38,7 @@ export default function FacturesPage() {
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [rows, setRows] = useState<FactureRow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [emailConfirm, setEmailConfirm] = useState<FactureRow | null>(null);
   const [form, setForm] = useState({
     companyName: "",
     email: "",
@@ -106,6 +107,10 @@ export default function FacturesPage() {
   };
 
   const sendInvoice = async (invoice: FactureRow) => {
+    setEmailConfirm(invoice);
+  };
+
+  const confirmSendInvoice = async (invoice: FactureRow) => {
     setSendingId(invoice.id);
     try {
       await fetch("/api/factures/send", {
@@ -123,6 +128,7 @@ export default function FacturesPage() {
           notes: invoice.notes,
         }),
       });
+      setEmailConfirm(null);
       await refresh();
     } finally {
       setSendingId(null);
@@ -231,6 +237,58 @@ export default function FacturesPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Email Confirmation Modal */}
+      {emailConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl border border-border p-6 max-w-md w-full mx-4 space-y-4">
+            <h2 className="font-heading text-lg font-bold text-charcoal">Envoyer facture par email</h2>
+
+            {/* Email details */}
+            <div className="bg-gray-50 rounded-lg border border-border p-4 space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-muted uppercase tracking-wider">À</label>
+                <p className="text-sm text-charcoal mt-1">{emailConfirm.email}</p>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted uppercase tracking-wider">Sujet</label>
+                <p className="text-sm text-charcoal mt-1">Facture {emailConfirm.invoice_number}</p>
+              </div>
+            </div>
+
+            {/* Email body preview */}
+            <div className="bg-blue-50 rounded-lg border border-blue-200 p-4 space-y-2">
+              <label className="text-xs font-semibold text-muted uppercase tracking-wider">Aperçu du message</label>
+              <p className="text-sm text-charcoal font-medium">Bonjour {emailConfirm.company_name},</p>
+              <p className="text-sm text-charcoal">
+                Veuillez trouver en pièce jointe votre facture <strong>{emailConfirm.invoice_number}</strong>.
+              </p>
+              <p className="text-sm text-charcoal">
+                <strong>Montant:</strong> CHF {Number(emailConfirm.total).toFixed(2)}
+              </p>
+              <p className="text-sm text-charcoal">Cordialement,</p>
+              <p className="text-sm text-charcoal font-medium">{SWEET_EMBALLAGES_COMPANY.legalName}</p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-4">
+              <button
+                onClick={() => setEmailConfirm(null)}
+                className="flex-1 px-4 py-2 rounded-lg border border-border hover:bg-gray-50 text-charcoal font-medium"
+              >
+                Annuler
+              </button>
+              <button
+                disabled={sendingId === emailConfirm.id}
+                onClick={() => void confirmSendInvoice(emailConfirm)}
+                className="flex-1 px-4 py-2 rounded-lg bg-kraft text-white hover:bg-[#b09268] font-medium disabled:opacity-50"
+              >
+                {sendingId === emailConfirm.id ? "Envoi..." : "Envoyer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
