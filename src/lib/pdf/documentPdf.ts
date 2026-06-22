@@ -1,4 +1,4 @@
-import PDFDocument from "pdfkit";
+import { PDFDocument, PDFPage, rgb } from "pdf-lib";
 import {
   SWEET_EMBALLAGES_COMPANY,
   computeInvoiceTotals,
@@ -18,13 +18,6 @@ export interface PdfDocumentInput {
   notes?: string | null;
 }
 
-const PAGE_MARGIN = 50;
-const COL_DESCRIPTION_X = PAGE_MARGIN;
-const COL_QTY_X = 340;
-const COL_UNIT_X = 410;
-const COL_TOTAL_X = 490;
-const ROW_HEIGHT = 20;
-
 function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -40,127 +33,140 @@ function formatChf(value: number) {
 }
 
 export async function buildDocumentPdf(input: PdfDocumentInput): Promise<Buffer> {
-  const doc = new PDFDocument({ size: "A4", margin: PAGE_MARGIN, bufferPages: true });
-  const chunks: Buffer[] = [];
-  doc.on("data", (chunk) => chunks.push(chunk));
+  const pdfDoc = await PDFDocument.create();
+  let page = pdfDoc.addPage([595, 842]); // A4 size
+  const { width, height } = page.getSize();
+  const margin = 50;
+  let yPosition = height - margin;
 
-  const done = new Promise<Buffer>((resolve, reject) => {
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", (err: Error) => {
-      console.error("PDF generation error:", err);
-      reject(err);
+  const { subtotal, vatAmount, total } = computeInvoiceTotals(input.lineItems);
+  const vatRate = subtotal === 0 ? 0 : (vatAmount / subtotal) * 100;
+
+  // Helper to add text
+  const addText = (text: string, x: number, y: number, size: number = 10, bold = false) => {
+    page.drawText(text, {
+      x,
+      y,
+      size,
+      color: rgb(0, 0, 0),
     });
-  });
-
-  const bottomLimit = doc.page.height - doc.page.margins.bottom;
-
-  const drawTableHeader = () => {
-    doc.font("Helvetica-Bold").fontSize(9).fillColor("#444");
-    doc.text("Description", COL_DESCRIPTION_X, doc.y, { width: COL_QTY_X - COL_DESCRIPTION_X - 10 });
-    doc.text("Qté", COL_QTY_X, doc.y - doc.currentLineHeight(), { width: COL_UNIT_X - COL_QTY_X - 10, align: "right" });
-    doc.text("Prix unit.", COL_UNIT_X, doc.y - doc.currentLineHeight(), { width: COL_TOTAL_X - COL_UNIT_X - 10, align: "right" });
-    doc.text("Total", COL_TOTAL_X, doc.y - doc.currentLineHeight(), { width: doc.page.width - doc.page.margins.right - COL_TOTAL_X, align: "right" });
-    doc.moveDown(0.4);
-    doc
-      .moveTo(PAGE_MARGIN, doc.y)
-      .lineTo(doc.page.width - doc.page.margins.right, doc.y)
-      .strokeColor("#ccc")
-      .stroke();
-    doc.moveDown(0.4);
-    doc.font("Helvetica").fillColor("#222");
   };
 
-  const ensureSpace = (needed: number) => {
-    if (doc.y + needed > bottomLimit) {
-      doc.addPage();
-      doc.y = doc.page.margins.top;
-      drawTableHeader();
-    }
-  };
+  // Header - Company info (right aligned)
+  addText(SWEET_EMBALLAGES_COMPANY.legalName, width - margin - 200, yPosition, 9);
+  yPosition -= 12;
+  addText(SWEET_EMBALLAGES_COMPANY.addressLine1, width - margin - 200, yPosition, 9);
+  yPosition -= 12;
+  addText(SWEET_EMBALLAGES_COMPANY.addressLine2, width - margin - 200, yPosition, 9);
+  yPosition -= 12;
+  addText(`IDE/UID TVA: ${SWEET_EMBALLAGES_COMPANY.vatNumber}`, width - margin - 200, yPosition, 9);
+  yPosition -= 30;
 
-  doc.fontSize(9).fillColor("#444");
-  doc.text(SWEET_EMBALLAGES_COMPANY.legalName, 350, PAGE_MARGIN, { align: "right" });
-  doc.text(SWEET_EMBALLAGES_COMPANY.addressLine1, { align: "right" });
-  doc.text(SWEET_EMBALLAGES_COMPANY.addressLine2, { align: "right" });
-  doc.text(`IDE/UID TVA: ${SWEET_EMBALLAGES_COMPANY.vatNumber}`, { align: "right" });
+  // Title
+  addText(input.kind, margin, yPosition, 22);
+  yPosition -= 30;
 
-  doc.y = PAGE_MARGIN + 90;
-  doc.x = PAGE_MARGIN;
+  // Invoice details
+  addText(`Numéro: ${input.number}`, margin, yPosition, 10);
+  yPosition -= 15;
+  addText(`Date d'émission: ${formatDate(input.issueDate)}`, margin, yPosition, 10);
+  yPosition -= 15;
+  addText(`${input.secondaryDateLabel}: ${formatDate(input.secondaryDate)}`, margin, yPosition, 10);
+  yPosition -= 25;
 
-  doc.fillColor("#000").font("Helvetica-Bold").fontSize(22).text(input.kind, PAGE_MARGIN, doc.y);
-  doc.moveDown(0.3);
-  doc.font("Helvetica").fontSize(10).fillColor("#333");
-  doc.text(`Numéro: ${input.number}`);
-  doc.text(`Date d'émission: ${formatDate(input.issueDate)}`);
-  doc.text(`${input.secondaryDateLabel}: ${formatDate(input.secondaryDate)}`);
+  // Client section
+  addText("Client", margin, yPosition, 11);
+  yPosition -= 15;
+  addText(input.companyName, margin, yPosition, 10);
+  yPosition -= 12;
+  addText(input.email, margin, yPosition, 10);
+  yPosition -= 12;
 
-  doc.moveDown(1);
-  doc.font("Helvetica-Bold").fontSize(11).fillColor("#000").text("Client");
-  doc.font("Helvetica").fontSize(10).fillColor("#333");
-  doc.text(input.companyName);
-  doc.text(input.email);
   if (input.billingAddress) {
     for (const line of input.billingAddress.split("\n")) {
-      doc.text(line);
+      addText(line, margin, yPosition, 10);
+      yPosition -= 12;
     }
   }
 
-  doc.moveDown(1.2);
-  drawTableHeader();
+  yPosition -= 15;
 
+  // Table header
+  const colX = [margin, 340, 410, 490];
+  const colLabels = ["Description", "Qté", "Prix unit.", "Total"];
+  page.drawRectangle({
+    x: margin,
+    y: yPosition - 15,
+    width: width - margin * 2,
+    height: 15,
+    color: rgb(0.96, 0.96, 0.96),
+  });
+  for (let i = 0; i < colLabels.length; i++) {
+    addText(colLabels[i], colX[i], yPosition - 12, 9);
+  }
+  yPosition -= 20;
+
+  // Table rows
   for (const item of input.lineItems) {
-    ensureSpace(ROW_HEIGHT);
     const lineTotal = item.quantity * item.unitPrice;
-    const rowY = doc.y;
-    doc.fontSize(9).fillColor("#222");
-    doc.text(item.description, COL_DESCRIPTION_X, rowY, { width: COL_QTY_X - COL_DESCRIPTION_X - 10 });
-    doc.text(String(item.quantity), COL_QTY_X, rowY, { width: COL_UNIT_X - COL_QTY_X - 10, align: "right" });
-    doc.text(formatChf(item.unitPrice), COL_UNIT_X, rowY, { width: COL_TOTAL_X - COL_UNIT_X - 10, align: "right" });
-    doc.text(formatChf(lineTotal), COL_TOTAL_X, rowY, {
-      width: doc.page.width - doc.page.margins.right - COL_TOTAL_X,
-      align: "right",
-    });
-    doc.y = rowY + ROW_HEIGHT;
+    const texts = [
+      item.description,
+      String(item.quantity),
+      formatChf(item.unitPrice),
+      formatChf(lineTotal),
+    ];
+
+    // Check if we need a new page
+    if (yPosition < margin + 60) {
+      page = pdfDoc.addPage([595, 842]);
+      yPosition = height - margin;
+      // Redraw table header
+      page.drawRectangle({
+        x: margin,
+        y: yPosition - 15,
+        width: width - margin * 2,
+        height: 15,
+        color: rgb(0.96, 0.96, 0.96),
+      });
+      for (let i = 0; i < colLabels.length; i++) {
+        addText(colLabels[i], colX[i], yPosition - 12, 9);
+      }
+      yPosition -= 20;
+    }
+
+    for (let i = 0; i < texts.length; i++) {
+      const alignment = i === 0 ? margin : colX[i];
+      addText(texts[i], alignment, yPosition, 9);
+    }
+    yPosition -= 15;
   }
 
-  doc.moveDown(0.5);
-  doc
-    .moveTo(PAGE_MARGIN, doc.y)
-    .lineTo(doc.page.width - doc.page.margins.right, doc.y)
-    .strokeColor("#ccc")
-    .stroke();
-  doc.moveDown(0.6);
+  yPosition -= 15;
 
-  ensureSpace(ROW_HEIGHT * 3);
-  const { subtotal, vatAmount, total } = computeInvoiceTotals(input.lineItems);
-  const vatRate = (subtotal === 0 ? 0 : vatAmount / subtotal) * 100;
-  doc.font("Helvetica").fontSize(10).fillColor("#222");
-  doc.text(`Sous-total: ${formatChf(subtotal)}`, { align: "right" });
-  doc.text(`TVA (${vatRate.toFixed(1).replace(".", ",")} %): ${formatChf(vatAmount)}`, { align: "right" });
-  doc.font("Helvetica-Bold").text(`Total TTC: ${formatChf(total)}`, { align: "right" });
+  // Totals
+  addText(`Sous-total: ${formatChf(subtotal)}`, width - margin - 150, yPosition, 10);
+  yPosition -= 15;
+  addText(
+    `TVA (${vatRate.toFixed(1).replace(".", ",")} %): ${formatChf(vatAmount)}`,
+    width - margin - 150,
+    yPosition,
+    10
+  );
+  yPosition -= 15;
+  addText(`Total TTC: ${formatChf(total)}`, width - margin - 150, yPosition, 10);
 
+  // Notes
   if (input.notes) {
-    doc.moveDown(1);
-    ensureSpace(ROW_HEIGHT * 2);
-    doc.font("Helvetica-Bold").fontSize(10).fillColor("#000").text("Notes");
-    doc.font("Helvetica").fontSize(9).fillColor("#333");
+    yPosition -= 25;
+    addText("Notes", margin, yPosition, 11);
+    yPosition -= 15;
     for (const line of input.notes.split("\n")) {
-      doc.text(line);
+      addText(line, margin, yPosition, 9);
+      yPosition -= 12;
     }
   }
 
-  const pageRange = doc.bufferedPageRange();
-  for (let i = 0; i < pageRange.count; i += 1) {
-    doc.switchToPage(i);
-    doc
-      .fontSize(8)
-      .fillColor("#999")
-      .text(`Page ${i + 1} / ${pageRange.count}`, PAGE_MARGIN, doc.page.height - 30, {
-        width: doc.page.width - PAGE_MARGIN * 2,
-        align: "center",
-      });
-  }
-
-  doc.end();
-  return done;
+  // Save and return buffer
+  const pdfBytes = await pdfDoc.save();
+  return Buffer.from(pdfBytes);
 }
