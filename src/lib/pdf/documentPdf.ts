@@ -158,10 +158,10 @@ export async function buildDocumentPdf(input: PdfDocumentInput): Promise<Buffer>
 
       // Redraw table headers on new page
       drawRect(margin, yPosition - 20, width - margin * 2, 20, COLORS.lightGray);
-      for (let i = 0; i < colLabels.length; i++) {
-        const isLast = i === colLabels.length - 1;
-        drawText(colLabels[i], colX[i] + (isLast ? colWidths[i] - 70 : 5), yPosition - 16, 9, COLORS.gray, true);
-      }
+      drawText(colLabels[0], colX[0], yPosition - 16, 9, COLORS.gray, true);
+      drawText(colLabels[1], colX[1], yPosition - 16, 9, COLORS.gray, true);
+      drawText(colLabels[2], colX[2], yPosition - 16, 9, COLORS.gray, true);
+      drawText(colLabels[3], colX[3] + 30, yPosition - 16, 9, COLORS.gray, true);
       yPosition -= 25;
       drawLine(margin, yPosition, width - margin, COLORS.border, 1);
       yPosition -= 10;
