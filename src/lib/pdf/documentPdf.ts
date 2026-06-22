@@ -152,7 +152,7 @@ export async function buildDocumentPdf(input: PdfDocumentInput): Promise<Buffer>
     // Check if we need a new page
     if (yPosition < margin + 120) {
       // Add page number to current page
-      page.drawText(`Page 1`, width / 2 - 10, margin - 30, 8, COLORS.gray);
+      drawText(`Page 1`, width / 2 - 10, margin - 30, 8, COLORS.gray);
 
       page = pdfDoc.addPage([595, 842]);
       yPosition = height - margin;
@@ -222,7 +222,7 @@ export async function buildDocumentPdf(input: PdfDocumentInput): Promise<Buffer>
   }
 
   // Footer
-  page.drawText(`Page 1 of 1`, width / 2 - 20, margin - 30, 8, COLORS.gray);
+  drawText(`Page 1 of 1`, width / 2 - 20, margin - 30, 8, COLORS.gray);
 
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);
